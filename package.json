@@ -39,6 +39,7 @@
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.545.0",
     "next": "16.0.0",
+    "next-app": "^0.0.0",
     "next-themes": "^0.4.6",
     "react": "18.3.1",
     "react-day-picker": "^9.11.1",
