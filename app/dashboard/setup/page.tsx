@@ -54,7 +54,7 @@ const availableSpecialties = [
 
 export default function PhotographerSetup() {
   const router = useRouter()
-  
+
 
   const [step, setStep] = useState(1)
   const [uploading, setUploading] = useState(false)
@@ -71,7 +71,7 @@ export default function PhotographerSetup() {
     specialties: [],
     availability: true,
     profile_image_url: "",
-    role:'',
+    role: '',
 
   })
   const [errors, setErrors] = useState<FormErrors>({})
@@ -134,44 +134,44 @@ export default function PhotographerSetup() {
 
   const handleBack = () => setStep((prev) => prev - 1)
 
-  
+
   const handleUpload = async () => {
-  if (!imageFile) return alert("Please select an image first.")
+    if (!imageFile) return alert("Please select an image first.")
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  if (userError || !user) {
-    alert("You must be logged in to upload.")
-    return
-  }
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      alert("You must be logged in to upload.")
+      return
+    }
 
-  setUploading(true)
+    setUploading(true)
 
-  // Each user’s files go into a personal folder
-  const filePath = `${user.id}/${Date.now()}_${imageFile.name}`
+    // Each user’s files go into a personal folder
+    const filePath = `${user.id}/${Date.now()}_${imageFile.name}`
 
-  const { data, error } = await supabase.storage
-    .from("profile_image")
-    .upload(filePath, imageFile)
-
-  if (error) {
-    alert("Upload failed: " + error.message)
-  } else {
-    const { data: publicData } = supabase.storage
+    const { data, error } = await supabase.storage
       .from("profile_image")
-      .getPublicUrl(filePath)
+      .upload(filePath, imageFile)
 
-    setFormData((prev) => ({
-      ...prev,
-      profile_image_url: publicData.publicUrl,
-    }))
-    alert("Image uploaded successfully!")
+    if (error) {
+      alert("Upload failed: " + error.message)
+    } else {
+      const { data: publicData } = supabase.storage
+        .from("profile_image")
+        .getPublicUrl(filePath)
+
+      setFormData((prev) => ({
+        ...prev,
+        profile_image_url: publicData.publicUrl,
+      }))
+      alert("Image uploaded successfully!")
+    }
+
+    setUploading(false)
   }
 
-  setUploading(false)
-}
 
 
- 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const isValid = validateStep()
@@ -183,28 +183,33 @@ export default function PhotographerSetup() {
       return
     }
 
-    const { error } = await supabase.from("photographer_profiles").insert({
-      user_id: user.id, 
+    // Upsert into Unified 'profiles' table
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: user.id,
       email: formData.email || user.email,
       full_name: formData.full_name,
+      role: formData.role,
+      phone: formData.phone,
       bio: formData.bio,
       location: formData.location,
-      phone: formData.phone,
-      experience: formData.experience,
-      portfolio_url: formData.portfolio_url,
-      hourly_rate: formData.hourly_rate,
+      experience: Number(formData.experience),
+      hourly_rate: Number(formData.hourly_rate),
       specialties: formData.specialties,
+      portfolio_url: formData.portfolio_url,
       availability: formData.availability,
       profile_image_url: formData.profile_image_url,
-      role: formData.role,
+
+      updated_at: new Date().toISOString(),
     })
 
-    if (error) {
-      alert("Error saving profile: " + error.message)
-    } else {
-      alert("Profile setup completed!")
-      router.push("/dashboard")
+    if (profileError) {
+      console.error("Error saving profile:", profileError)
+      alert("Error saving profile: " + profileError.message)
+      return
     }
+
+    alert("Profile setup completed!")
+    router.push("/dashboard")
   }
 
   const steps = [
@@ -237,22 +242,20 @@ export default function PhotographerSetup() {
             {steps.map((s, index) => (
               <div key={s.id} className="flex flex-col items-center text-center relative">
                 <div
-                  className={`rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 ${
-                    step === s.id
-                      ? "bg-black text-white"
-                      : step > s.id
+                  className={`rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 ${step === s.id
+                    ? "bg-black text-white"
+                    : step > s.id
                       ? "bg-green-500 text-white"
                       : "bg-gray-200 text-gray-600"
-                  }`}
+                    }`}
                 >
                   {step > s.id ? <CheckCircle size={20} /> : <s.icon size={20} />}
                 </div>
                 <p className="text-xs mt-2 font-medium">{s.label}</p>
                 {index < steps.length - 1 && (
                   <div
-                    className={`absolute top-5 left-1/2 h-0.5 w-full -translate-x-1/2 ${
-                      step > s.id ? "bg-green-500" : "bg-gray-300"
-                    }`}
+                    className={`absolute top-5 left-1/2 h-0.5 w-full -translate-x-1/2 ${step > s.id ? "bg-green-500" : "bg-gray-300"
+                      }`}
                   ></div>
                 )}
               </div>
@@ -364,16 +367,16 @@ export default function PhotographerSetup() {
                       {errors.portfolio_url && <p className="text-red-500 mt-2 text-sm">{errors.portfolio_url}</p>}
                     </div>
 
-                     <div>
-                        <Label>Role</Label>
-                        <Input
-                          name="email"
-                          className="mt-2"
-                          value={formData.role}
-                          onChange={handleChange}
-                        />
-                        {errors.role && <p className="text-red-500 mt-2 text-sm">{errors.role}</p>}
-                      </div>
+                    <div>
+                      <Label>Role</Label>
+                      <Input
+                        name="email"
+                        className="mt-2"
+                        value={formData.role}
+                        onChange={handleChange}
+                      />
+                      {errors.role && <p className="text-red-500 mt-2 text-sm">{errors.role}</p>}
+                    </div>
 
 
                     <div>

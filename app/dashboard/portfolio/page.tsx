@@ -137,7 +137,7 @@ export default function PortfolioPage() {
         .slice(2)}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("photographer_portfolio")
+        .from("portfolio_image")
         .upload(fileName, file);
 
       if (uploadError) {
@@ -146,7 +146,7 @@ export default function PortfolioPage() {
       }
 
       const { data } = supabase.storage
-        .from("photographer_portfolio")
+        .from("portfolio_image")
         .getPublicUrl(fileName);
       uploadedUrls.push(data.publicUrl);
     }
@@ -239,7 +239,7 @@ export default function PortfolioPage() {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <div className="w-full min-h-screen bg-white overflow-x-hidden">
+    <div className="w-full min-h-screen overflow-x-hidden bg-[#0D0D0D]">
       <Header />
 
       <div className="mx-auto w-full max-w-[1300px] px-4 py-10">
@@ -379,7 +379,7 @@ export default function PortfolioPage() {
 
         {/* Uploaded Works */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">
+          <h2 className="text-2xl font-bold mb-6 text-white">
             Your Uploaded Works
           </h2>
 
