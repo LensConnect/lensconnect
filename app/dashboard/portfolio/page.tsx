@@ -114,7 +114,7 @@ export default function PortfolioPage() {
     return Object.keys(newErrors).length === 0;
   };
 
- 
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -160,9 +160,9 @@ export default function PortfolioPage() {
     alert("Image(s) uploaded successfully!");
   };
 
- 
+
   // Submit portfolio
- 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -204,11 +204,18 @@ export default function PortfolioPage() {
   // ─────────────────────────────────────────────
   const fetchPortfolios = async () => {
     setLoading(true);
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("photographer_portfolio")
       .select(
         "id, title, description, category, location, image_url, created_at"
       )
+      .eq("photographer_id", authData.user.id)
       .order("created_at", { ascending: false });
     if (error) console.error(error);
     setPortfolios(data || []);
@@ -220,7 +227,7 @@ export default function PortfolioPage() {
   }, []);
 
   // Image Slider Controls
- 
+
   const handleNext = (id: string, total: number) => {
     setActiveIndex((prev) => ({
       ...prev,

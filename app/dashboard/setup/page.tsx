@@ -370,7 +370,7 @@ export default function PhotographerSetup() {
                     <div>
                       <Label>Role</Label>
                       <Input
-                        name="email"
+                        name="role"
                         className="mt-2"
                         value={formData.role}
                         onChange={handleChange}

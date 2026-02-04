@@ -331,8 +331,25 @@ export default function ProfilePage() {
 
                     {/* Left Sidebar: Details Form */}
                     <aside className="lg:col-span-4 space-y-8">
+                        {profile?.role === "Photographer" && (
+                            <div className="p-6 rounded-3xl bg-secondary/10 border border-white/5 text-center">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hourly Rate</Label>
+                                <div className="flex items-center justify-center mt-2">
+                                    <span className="text-xl text-primary font-bold">$</span>
+                                    <Input
+                                        name="hourly_rate"
+                                        type="number"
+                                        value={profile?.hourly_rate || ""}
+                                        onChange={handleChange}
+                                        className="text-3xl font-black bg-transparent border-0 text-center w-24 p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {/* Stats / Quick Info */}
+                        {profile?.role === "photographer" && (
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-6 rounded-3xl bg-secondary/10 border border-white/5 text-center">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hourly Rate</Label>
@@ -363,8 +380,10 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         </div>
-
+                        )}
                         {/* Bio Section */}
+
+                        {profile?.role === "photographer" && (
                         <div className="space-y-4 p-8 rounded-[2rem] bg-secondary/5 border border-white/5">
                             <h2 className="text-xs font-black tracking-[0.2em] uppercase text-primary flex items-center gap-2">
                                 <Briefcase className="h-4 w-4" /> About You
@@ -377,8 +396,10 @@ export default function ProfilePage() {
                                 placeholder="Tell your story. Describe your style, vision, and what makes your work unique..."
                             />
                         </div>
+                        )}
 
                         {/* Specialties Section */}
+                        {profile?.role === "photographer" && (
                         <div className="space-y-4 p-8 rounded-[2rem] bg-secondary/5 border border-white/5">
                             <h2 className="text-xs font-black tracking-[0.2em] uppercase text-primary flex items-center gap-2">
                                 <Star className="h-4 w-4" /> Specialties
@@ -401,7 +422,7 @@ export default function ProfilePage() {
                                 })}
                             </div>
                         </div>
-
+                        )}
                         {/* Web Links */}
                         <div className="space-y-4 p-8 rounded-[2rem] bg-secondary/5 border border-white/5">
                             <h2 className="text-xs font-black tracking-[0.2em] uppercase text-primary flex items-center gap-2">
@@ -423,6 +444,7 @@ export default function ProfilePage() {
                     </aside>
 
                     {/* Right Content: Portfolio Gallery Preview */}
+                    {profile?.role === "photographer" && (
                     <div className="lg:col-span-8 space-y-8">
                         <div className="flex items-end justify-between border-b border-white/5 pb-2">
                             <div className="space-y-2">
@@ -478,6 +500,7 @@ export default function ProfilePage() {
                             </div>
                         )}
                     </div>
+                    )}
                 </div>
             </main>
         </div>
