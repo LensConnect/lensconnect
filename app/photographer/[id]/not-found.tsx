@@ -9,7 +9,7 @@ export default function NotFound() {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold">Photographer Not Found</h1>
-          <p className="text-muted-foreground">The photographer you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground">The photographer you&apos;re looking for doesn&apos;t exist.</p>
           <Button asChild>
             <Link href="/search">Browse Photographers</Link>
           </Button>

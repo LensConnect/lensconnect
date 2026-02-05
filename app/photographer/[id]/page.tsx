@@ -175,7 +175,7 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
                 <Separator />
 
                 <div className="space-y-3 text-sm">
-                  <h3 className="font-semibold">What's included:</h3>
+                  <h3 className="font-semibold">What&apos;s included:</h3>
                   <ul className="space-y-2 text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />

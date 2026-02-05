@@ -30,7 +30,7 @@ export default function VerifyEmailPage() {
         localStorage.removeItem("pendingEmail");
 
         if (role === "photographer") {
-          router.push("/dashboard/photographer");
+          router.push("/dashboard");
         } else {
           router.push("/dashboard/client");
         }

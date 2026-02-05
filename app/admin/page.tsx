@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+
 import { Header } from "@/components/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,19 +10,10 @@ import { Users, Camera, Calendar, DollarSign, TrendingUp, Activity } from "lucid
 import { mockPhotographers, mockBookings, mockReviews } from "@/lib/mock-data"
 
 export default function AdminDashboardPage() {
-  const { user, isLoading } = useAuth()
+
   const router = useRouter()
 
-  useEffect(() => {
-    if (!isLoading && (!user || user.role !== "admin")) {
-      router.push("/")
-    }
-  }, [user, isLoading, router])
-
-  if (isLoading || !user || user.role !== "admin") {
-    return null
-  }
-
+  
   // Calculate stats
   const totalPhotographers = mockPhotographers.length
   const totalBookings = mockBookings.length

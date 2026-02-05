@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient"; // make sure you created this file
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Camera } from "lucide-react";
-import { toast } from "sonner"; 
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -28,6 +28,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // Use Supabase directly to get user metadata
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -40,13 +41,14 @@ export default function LoginPage() {
 
       toast.success("Login successful 🎉");
 
-      // Store user info locally (optional)
-      if (data.user) {
-        localStorage.setItem("user_email", data.user.email || "");
-        localStorage.setItem("user_id", data.user.id);
-      }
+      // Check user's role from metadata to redirect appropriately
+      const userRole = data.user?.user_metadata?.role || "client";
 
-      router.push("/dashboard"); // change to your desired route
+      if (userRole === "photographer") {
+        router.push("/dashboard");
+      } else {
+        router.push("/client-dashboard");
+      }
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
@@ -109,18 +111,14 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Log in"}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">
-                Don’t have an account?{" "}
+                Don't have an account?{" "}
               </span>
               <Link
                 href="/signup"
@@ -135,3 +133,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

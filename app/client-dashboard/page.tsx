@@ -10,20 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
-  DollarSign,
-  Star,
-  TrendingUp,
+  Search,
   Clock,
   CheckCircle2,
   XCircle,
   AlertCircle,
-  ImageIcon,
+  Heart,
   Settings,
+  MessageSquare,
 } from "lucide-react";
-import { mockBookings, mockPhotographers } from "@/lib/mock-data";
+import { mockBookings } from "@/lib/mock-data";
 import Link from "next/link";
 
-export default function PhotographerDashboardPage() {
+export default function ClientDashboardPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -32,45 +31,27 @@ export default function PhotographerDashboardPage() {
       if (!user) {
         // Not logged in - redirect to login
         router.push("/login");
-      } else if (user.role === "client") {
-        // Wrong role - redirect to client dashboard
-        router.push("/client-dashboard");
+      } else if (user.role === "photographer") {
+        // Wrong role - redirect to photographer dashboard
+        router.push("/dashboard");
       }
     }
   }, [user, isLoading, router]);
 
-  if (isLoading || !user || user.role !== "photographer") {
+  if (isLoading || !user || user.role !== "client") {
     return null;
   }
 
-  // Mock data for the current photographer
-  const photographerProfile =
-    mockPhotographers.find((p) => p.userId === user.id) || mockPhotographers[0];
-  const photographerBookings = mockBookings.filter(
-    (b) => b.photographerId === photographerProfile.userId
-  );
+  // Mock data for the current client
+  const clientBookings = mockBookings.filter((b) => b.clientId === user.id);
 
-  const upcomingBookings = photographerBookings.filter(
-    (b) => b.status === "confirmed" && b.date > new Date()
+  const upcomingBookings = clientBookings.filter(
+    (b) => b.status === "confirmed" && new Date(b.date) > new Date()
   );
-  const pendingBookings = photographerBookings.filter(
-    (b) => b.status === "pending"
-  );
-  const completedBookings = photographerBookings.filter(
+  const pendingBookings = clientBookings.filter((b) => b.status === "pending");
+  const completedBookings = clientBookings.filter(
     (b) => b.status === "completed"
   );
-
-  const totalEarnings = completedBookings.reduce(
-    (sum, b) => sum + b.totalPrice,
-    0
-  );
-  const thisMonthEarnings = completedBookings
-    .filter((b) => {
-      const bookingMonth = b.date.getMonth();
-      const currentMonth = new Date().getMonth();
-      return bookingMonth === currentMonth;
-    })
-    .reduce((sum, b) => sum + b.totalPrice, 0);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,18 +61,24 @@ export default function PhotographerDashboardPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Photographer Dashboard</h1>
+            <h1 className="text-3xl font-bold">My Bookings</h1>
             <p className="text-muted-foreground">Welcome back, {user.name}</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" asChild className="bg-transparent">
-              <Link href="/dashboard/portfolio">
-                <ImageIcon className="h-4 w-4 mr-2" />
-                Manage Portfolio
+            <Button asChild className="bg-primary">
+              <Link href="/search">
+                <Search className="h-4 w-4 mr-2" />
+                Find Photographers
               </Link>
             </Button>
             <Button variant="outline" asChild className="bg-transparent">
-              <Link href="/dashboard/settings">
+              <Link href="/client-dashboard/favorites">
+                <Heart className="h-4 w-4 mr-2" />
+                Favorites
+              </Link>
+            </Button>
+            <Button variant="outline" asChild className="bg-transparent">
+              <Link href="/client-dashboard/settings">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Link>
@@ -100,69 +87,65 @@ export default function PhotographerDashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Earnings
+                Total Bookings
               </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                ${totalEarnings.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                From {completedBookings.length} completed bookings
-              </p>
+              <div className="text-2xl font-bold">{clientBookings.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                This Month
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${thisMonthEarnings.toLocaleString()}
-              </div>
-              <p className="text-xs text-green-600 mt-1">
-                +12% from last month
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Rating
-              </CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {photographerProfile.rating.toFixed(1)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {photographerProfile.reviewCount} reviews
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pending Requests
+                Upcoming
               </CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
+              <div className="text-2xl font-bold">
+                {upcomingBookings.length}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Confirmed sessions
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Pending
+              </CardTitle>
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
               <div className="text-2xl font-bold">{pendingBookings.length}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                Awaiting your response
+                Awaiting response
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Completed
+              </CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {completedBookings.length}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Finished sessions
               </p>
             </CardContent>
           </Card>
@@ -185,12 +168,17 @@ export default function PhotographerDashboardPage() {
           <TabsContent value="upcoming" className="space-y-4">
             {upcomingBookings.length > 0 ? (
               upcomingBookings.map((booking) => (
-                <PhotographerBookingCard key={booking.id} booking={booking} />
+                <ClientBookingCard key={booking.id} booking={booking} />
               ))
             ) : (
               <Card className="p-12 text-center">
                 <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No upcoming bookings</p>
+                <p className="text-muted-foreground mb-4">
+                  No upcoming bookings
+                </p>
+                <Button asChild>
+                  <Link href="/search">Find a Photographer</Link>
+                </Button>
               </Card>
             )}
           </TabsContent>
@@ -198,10 +186,10 @@ export default function PhotographerDashboardPage() {
           <TabsContent value="pending" className="space-y-4">
             {pendingBookings.length > 0 ? (
               pendingBookings.map((booking) => (
-                <PhotographerBookingCard
+                <ClientBookingCard
                   key={booking.id}
                   booking={booking}
-                  showActions
+                  showCancel
                 />
               ))
             ) : (
@@ -215,7 +203,11 @@ export default function PhotographerDashboardPage() {
           <TabsContent value="completed" className="space-y-4">
             {completedBookings.length > 0 ? (
               completedBookings.map((booking) => (
-                <PhotographerBookingCard key={booking.id} booking={booking} />
+                <ClientBookingCard
+                  key={booking.id}
+                  booking={booking}
+                  showReview
+                />
               ))
             ) : (
               <Card className="p-12 text-center">
@@ -232,12 +224,14 @@ export default function PhotographerDashboardPage() {
   );
 }
 
-function PhotographerBookingCard({
+function ClientBookingCard({
   booking,
-  showActions = false,
+  showCancel = false,
+  showReview = false,
 }: {
   booking: any;
-  showActions?: boolean;
+  showCancel?: boolean;
+  showReview?: boolean;
 }) {
   const statusConfig = {
     pending: {
@@ -278,7 +272,7 @@ function PhotographerBookingCard({
               <div>
                 <h3 className="font-semibold text-lg">{booking.type}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Client: {booking.clientName}
+                  Photographer: {booking.photographerName}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {booking.location}
@@ -315,9 +309,8 @@ function PhotographerBookingCard({
                   ({booking.duration}h)
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <span className="font-semibold">${booking.totalPrice}</span>
+              <div className="flex items-center gap-2 font-semibold text-primary">
+                ${booking.totalPrice}
               </div>
             </div>
 
@@ -328,20 +321,33 @@ function PhotographerBookingCard({
             )}
           </div>
 
-          {showActions && (
-            <div className="flex md:flex-col gap-2">
-              <Button size="sm" className="flex-1 md:flex-none">
-                Accept
-              </Button>
+          <div className="flex md:flex-col gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 md:flex-none bg-transparent"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Message
+            </Button>
+            {showCancel && (
               <Button
                 size="sm"
-                variant="outline"
-                className="flex-1 md:flex-none bg-transparent"
+                variant="destructive"
+                className="flex-1 md:flex-none"
+                onClick={() => {
+                  /* TODO: Implement cancel booking */
+                }}
               >
-                Decline
+                Cancel
               </Button>
-            </div>
-          )}
+            )}
+            {showReview && (
+              <Button size="sm" className="flex-1 md:flex-none">
+                Leave Review
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

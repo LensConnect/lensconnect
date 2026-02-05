@@ -1,21 +1,22 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
-import { Analytics } from "@vercel/analytics/next"
-import { AuthProvider } from "@/lib/auth-context"
-import "./globals.css"
-import { Suspense } from "react"
+import { Analytics } from "@vercel/analytics/next";
+import { AuthProvider } from "@/lib/auth-context";
+import "./globals.css";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "LensConnect - Connect with Professional Photographers",
-  description: "Book professional photographers for events, portraits, products, and real estate",
+  description:
+    "Book professional photographers for events, portraits, products, and real estate",
   generator: "v0.app",
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
@@ -26,5 +27,5 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  )
+  );
 }
