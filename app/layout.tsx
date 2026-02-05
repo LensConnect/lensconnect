@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans font-mono">
+      <body className="font-sans font-mono" suppressHydrationWarning>
         <Suspense fallback={<div>Loading...</div>}>
           <AuthProvider>{children}</AuthProvider>
         </Suspense>
