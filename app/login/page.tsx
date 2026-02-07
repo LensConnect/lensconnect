@@ -47,7 +47,7 @@ export default function LoginPage() {
       if (userRole === "photographer") {
         router.push("/dashboard");
       } else {
-        router.push("/client-dashboard");
+        router.push("/dashboard/client");
       }
     } catch (error) {
       console.error("Login failed:", error);
@@ -57,7 +57,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-100 to-slate-300">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-muted/30">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">

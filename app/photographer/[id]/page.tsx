@@ -4,20 +4,62 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { supabase } from "@/lib/supabaseClient"
 import { Separator } from "@/components/ui/separator"
 import { Star, MapPin, DollarSign, Calendar, MessageSquare, CheckCircle2 } from "lucide-react"
 import { mockPhotographers, mockReviews } from "@/lib/mock-data"
 import Link from "next/link"
 
+interface Profile {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  profile_image_url?: string;
+  phone?: string;
+  location?: string;
+  bio?: string;
+  experience?: number;
+  hourly_rate?: number;
+  specialties?: string[];
+  availability: boolean;
+  rating?: number;
+  review_count?: number;
+}
+
+interface PortfolioItem {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  category: string[];
+  image_url: string[];
+}
+
 export default async function PhotographerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const photographer = mockPhotographers.find((p) => p.userId === id)
 
-  if (!photographer) {
+  // Fetch photographer profile
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
+    .single()
+
+  if (profileError || !profile) {
     notFound()
   }
 
-  const photographerReviews = mockReviews.filter((r) => r.photographerId === photographer.userId)
+  // Fetch photographer portfolio
+  const { data: portfolio, error: portfolioError } = await supabase
+    .from("photographer_portfolio")
+    .select("*")
+    .eq("photographer_id", id)
+
+  const portfolioItems: PortfolioItem[] = portfolio || []
+
+  // Mock reviews for now since no table exists
+  const photographerReviews: any[] = []
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -32,19 +74,19 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row gap-6">
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src={photographer.user.avatar || "/placeholder.svg"} alt={photographer.user.name} />
-                    <AvatarFallback className="text-2xl">{photographer.user.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={profile.profile_image_url || "/placeholder.svg"} alt={profile.full_name} className="object-cover"/>
+                    <AvatarFallback className="text-2xl">{profile.full_name?.charAt(0) || "P"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-3">
                     <div>
-                      <h1 className="text-3xl font-bold">{photographer.user.name}</h1>
+                      <h1 className="text-3xl font-bold">{profile.full_name}</h1>
                       <div className="flex items-center gap-2 text-muted-foreground mt-1">
                         <MapPin className="h-4 w-4" />
-                        <span>{photographer.location}</span>
+                        <span>{profile.location || "Location not specified"}</span>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {photographer.specialties.map((specialty) => (
+                      {profile.specialties?.map((specialty: string) => (
                         <Badge key={specialty} variant="secondary">
                           {specialty}
                         </Badge>
@@ -53,13 +95,13 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1">
                         <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold text-lg">{photographer.rating.toFixed(1)}</span>
-                        <span className="text-muted-foreground">({photographer.reviewCount} reviews)</span>
+                        <span className="font-semibold text-lg">{(profile.rating || 5.0).toFixed(1)}</span>
+                        <span className="text-muted-foreground">({profile.review_count || 0} reviews)</span>
                       </div>
                       <Separator orientation="vertical" className="h-6" />
                       <div className="flex items-center gap-1 font-semibold text-lg">
                         <DollarSign className="h-5 w-5" />
-                        <span>{photographer.hourlyRate}/hr</span>
+                        <span>{profile.hourly_rate || 0}/hr</span>
                       </div>
                     </div>
                   </div>
@@ -71,7 +113,7 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
             <Card>
               <CardContent className="p-6 space-y-4">
                 <h2 className="text-2xl font-semibold">About</h2>
-                <p className="text-muted-foreground leading-relaxed">{photographer.bio}</p>
+                <p className="text-muted-foreground leading-relaxed">{profile.bio || "No bio available."}</p>
               </CardContent>
             </Card>
 
@@ -79,17 +121,21 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
             <Card>
               <CardContent className="p-6 space-y-4">
                 <h2 className="text-2xl font-semibold">Portfolio</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {photographer.portfolioImages.map((image, index) => (
-                    <div key={index} className="relative aspect-[4/3] overflow-hidden rounded-lg">
-                      <img
-                        src={image || "/placeholder.svg"}
-                        alt={`Portfolio ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {portfolioItems.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {portfolioItems.flatMap(item => item.image_url).map((image, index) => (
+                      <div key={index} className="relative aspect-[4/3] overflow-hidden rounded-lg border">
+                        <img
+                          src={image || "/placeholder.svg"}
+                          alt={`Portfolio Image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No portfolio images uploaded yet.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -106,14 +152,13 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
                             {Array.from({ length: 5 }).map((_, i) => (
                               <Star
                                 key={i}
-                                className={`h-4 w-4 ${
-                                  i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-muted"
-                                }`}
+                                className={`h-4 w-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-muted"
+                                  }`}
                               />
                             ))}
                           </div>
                           <span className="text-sm text-muted-foreground">
-                            {review.createdAt.toLocaleDateString("en-US", {
+                            {new Date(review.created_at).toLocaleDateString("en-US", {
                               year: "numeric",
                               month: "long",
                               day: "numeric",
@@ -121,9 +166,7 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
                           </span>
                         </div>
                         <p className="text-muted-foreground">{review.comment}</p>
-                        {review.id !== photographerReviews[photographerReviews.length - 1].id && (
-                          <Separator className="mt-4" />
-                        )}
+                        <Separator className="mt-4" />
                       </div>
                     ))}
                   </div>
@@ -140,10 +183,10 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold">${photographer.hourlyRate}</span>
+                    <span className="text-2xl font-bold">${profile.hourly_rate || 0}</span>
                     <span className="text-muted-foreground">/hour</span>
                   </div>
-                  {photographer.availability ? (
+                  {profile.availability ? (
                     <div className="flex items-center gap-2 text-sm text-green-600">
                       <CheckCircle2 className="h-4 w-4" />
                       <span>Available for booking</span>
@@ -158,14 +201,14 @@ export default async function PhotographerProfilePage({ params }: { params: Prom
                 <Separator />
 
                 <div className="space-y-3">
-                  <Button className="w-full" size="lg" disabled={!photographer.availability} asChild>
-                    <Link href={`/booking/${photographer.userId}`}>
+                  <Button className="w-full" size="lg" disabled={!profile.availability} asChild>
+                    <Link href={`/booking/${profile.id}`}>
                       <Calendar className="h-4 w-4 mr-2" />
                       Book Now
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full bg-transparent" size="lg" asChild>
-                    <Link href={`/messages?to=${photographer.userId}`}>
+                    <Link href={`/messages?to=${profile.id}`}>
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Send Message
                     </Link>
