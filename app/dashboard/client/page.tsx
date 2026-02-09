@@ -1,5 +1,5 @@
 "use client";
-
+import React, { useState } from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -7,6 +7,7 @@ import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabaseClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
@@ -19,12 +20,57 @@ import {
   Settings,
   MessageSquare,
 } from "lucide-react";
-import { mockBookings } from "@/lib/mock-data";
 import Link from "next/link";
+import { toast } from "sonner";
+import { MapPin } from "lucide-react";
+
+type Booking = {
+  id: string;
+  client_id: string;
+  photographer_id: string;
+  start_time: string;
+  duration_hours: number;
+  status: string;
+  total_price: number;
+  shoot_type: string;
+  location: string;
+  message?: string;
+  profiles?: {
+    full_name: string;
+  };
+};
 
 export default function ClientDashboardPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+
+  const fetchBookings = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*, profiles:photographer_id(full_name)")
+      .eq("client_id", user.id)
+      .order("start_time", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching bookings:", error);
+      setLoading(false);
+      return;
+    }
+
+    setBookings(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user && user.role === "client") {
+      fetchBookings();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -38,18 +84,36 @@ export default function ClientDashboardPage() {
     }
   }, [user, isLoading, router]);
 
+  const handleCancelBooking = async (id: string) => {
+    if (!window.confirm("Are you sure you want to cancel and delete this booking?")) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error cancelling booking:", error);
+      alert("Failed to cancel booking. Please try again.");
+      return;
+    }
+
+    setBookings((prev) => prev.filter((b) => b.id !== id));
+    toast.success("Booking cancelled successfully");
+    fetchBookings();
+  };
+
   if (isLoading || !user || user.role !== "client") {
     return null;
   }
 
-  // Mock data for the current client
-  const clientBookings = mockBookings.filter((b) => b.clientId === user.id);
-
-  const upcomingBookings = clientBookings.filter(
-    (b) => b.status === "confirmed" && new Date(b.date) > new Date()
+  const upcomingBookings = bookings.filter(
+    (b) => b.status === "confirmed" && b.start_time && new Date(b.start_time).getTime() > new Date().getTime()
   );
-  const pendingBookings = clientBookings.filter((b) => b.status === "pending");
-  const completedBookings = clientBookings.filter(
+  const pendingBookings = bookings.filter((b) => b.status === "pending");
+  const completedBookings = bookings.filter(
     (b) => b.status === "completed"
   );
 
@@ -66,7 +130,7 @@ export default function ClientDashboardPage() {
           </div>
           <div className="flex gap-3">
             <Button asChild className="bg-primary">
-              <Link href="/Photographers">
+              <Link href="/photographers">
                 <Search className="h-4 w-4 mr-2" />
                 Find Photographers
               </Link>
@@ -96,7 +160,7 @@ export default function ClientDashboardPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clientBookings.length}</div>
+              <div className="text-2xl font-bold">{bookings.length}</div>
               <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
           </Card>
@@ -168,7 +232,12 @@ export default function ClientDashboardPage() {
           <TabsContent value="upcoming" className="space-y-4">
             {upcomingBookings.length > 0 ? (
               upcomingBookings.map((booking) => (
-                <ClientBookingCard key={booking.id} booking={booking} />
+                <ClientBookingCard
+                  key={booking.id}
+                  booking={booking}
+                  showCancel
+                  onCancel={handleCancelBooking}
+                />
               ))
             ) : (
               <Card className="p-12 text-center">
@@ -177,7 +246,7 @@ export default function ClientDashboardPage() {
                   No upcoming bookings
                 </p>
                 <Button asChild>
-                  <Link href="/Photographers">Find a Photographer</Link>
+                  <Link href="/photographers">Find a Photographer</Link>
                 </Button>
               </Card>
             )}
@@ -190,6 +259,7 @@ export default function ClientDashboardPage() {
                   key={booking.id}
                   booking={booking}
                   showCancel
+                  onCancel={handleCancelBooking}
                 />
               ))
             ) : (
@@ -228,10 +298,12 @@ function ClientBookingCard({
   booking,
   showCancel = false,
   showReview = false,
+  onCancel,
 }: {
   booking: any;
   showCancel?: boolean;
   showReview?: boolean;
+  onCancel?: (id: string) => void;
 }) {
   const statusConfig = {
     pending: {
@@ -252,6 +324,12 @@ function ClientBookingCard({
       bg: "bg-blue-50",
       label: "Completed",
     },
+    accepted: {
+      icon: CheckCircle2,
+      color: "text-green-600",
+      bg: "bg-green-50",
+      label: "Accepted",
+    },
     cancelled: {
       icon: XCircle,
       color: "text-red-600",
@@ -260,7 +338,7 @@ function ClientBookingCard({
     },
   };
 
-  const status = statusConfig[booking.status as keyof typeof statusConfig];
+  const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.pending;
   const StatusIcon = status.icon;
 
   return (
@@ -270,13 +348,14 @@ function ClientBookingCard({
           <div className="flex-1 space-y-3">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-semibold text-lg">{booking.type}</h3>
+                <h3 className="font-semibold text-lg capitalize">{booking.shoot_type}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Photographer: {booking.photographerName}
+                  Photographer: {booking.profiles?.full_name || "Unknown Photographer"}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
                   {booking.location}
-                </p>
+                </div>
               </div>
               <Badge
                 variant="secondary"
@@ -291,32 +370,31 @@ function ClientBookingCard({
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {booking.date.toLocaleDateString("en-US", {
+                  {booking.start_time ? new Date(booking.start_time).toLocaleDateString("en-US", {
                     weekday: "short",
                     month: "short",
                     day: "numeric",
                     year: "numeric",
-                  })}
+                  }) : "Date N/A"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {booking.date.toLocaleTimeString("en-US", {
+                  {booking.start_time ? new Date(booking.start_time).toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
-                  })}{" "}
-                  ({booking.duration}h)
+                  }) : "Time N/A"} ({booking.duration_hours} {booking.duration_hours === 1 ? 'hour' : 'hours'})
                 </span>
               </div>
               <div className="flex items-center gap-2 font-semibold text-primary">
-                ${booking.totalPrice}
+                ${booking.total_price || 0}
               </div>
             </div>
 
-            {booking.notes && (
-              <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                {booking.notes}
+            {booking.message && (
+              <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md italic">
+                "{booking.message}"
               </p>
             )}
           </div>
@@ -335,9 +413,7 @@ function ClientBookingCard({
                 size="sm"
                 variant="destructive"
                 className="flex-1 md:flex-none"
-                onClick={() => {
-                  /* TODO: Implement cancel booking */
-                }}
+                onClick={() => onCancel?.(booking.id)}
               >
                 Cancel
               </Button>
