@@ -259,8 +259,7 @@ export default function PhotographerProfilePage({ params }: { params: Promise<{ 
     return null
   }
 
-  // Mock reviews for now since no table exists
-  const photographerReviews: any[] = []
+  
 
   return (
     <div className="min-h-screen flex flex-col">
