@@ -412,6 +412,20 @@ function PhotographerBookingCard({
             )}
           </div>
 
+
+          {/* <div>
+            <select name="status" id="status" className="bg-black text-white border border-gray-700 rounded p-2" onChange={(e) => onStatusUpdate?.(booking.id, e.target.value)} 
+              value={booking.status}
+            >
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="accepted">Accepted</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+ */}
           <div className="flex md:flex-col gap-2">
             {showActions && booking.status === "pending" && (
               <>
