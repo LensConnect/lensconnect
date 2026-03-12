@@ -1,10 +1,16 @@
 import type React from "react";
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 import { Suspense } from "react";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "LensConnect - Connect with Professional Photographers",
@@ -20,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans font-mono" suppressHydrationWarning>
+      <body className={`${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
         <Suspense fallback={<div>Loading...</div>}>
           <AuthProvider>{children}</AuthProvider>
         </Suspense>

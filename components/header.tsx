@@ -100,7 +100,7 @@ export function Header() {
   const navLinks = [
     { href: "/photographers", label: "Find Photographers", roles: ["client", "photographer", ], icon: Search },
     { href: "/how-it-works", label: "How It Works", roles: ["client", "photographer"], icon: Camera }, // Placeholder icon
-    { href: "/client-dashboard", label: "Dashboard", roles: ["client"], icon: LayoutDashboard },
+    { href: "/dashboard/client", label: "Dashboard", roles: ["client"], icon: LayoutDashboard },
     { href: "/dashboard", label: "Dashboard", roles: ["photographer"], icon: LayoutDashboard },
     { href: "/admin", label: "Admin", roles: ["admin"], icon: Shield },
   ];

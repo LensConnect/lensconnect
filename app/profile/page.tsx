@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
     Camera,
     MapPin,
@@ -19,8 +20,12 @@ import {
     Briefcase,
     ExternalLink,
     Award,
-    Save
+    Save,
+    Loader2,
+    Image as ImageIcon
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface ProfileData {
     id: string;
@@ -49,7 +54,7 @@ interface PortfolioItem {
 }
 
 const AVAILABLE_SPECIALTIES = [
-    "Wedding", "Portrait", "Event", "Nature", "Fashion", "Sports", "Travel", "Product", "Studio"
+    "Wedding", "Portrait", "Event", "Nature", "Fashion", "Sports", "Travel", "Product", "Studio", "Commercial", "Editorial", "Architecture"
 ];
 
 export default function ProfilePage() {
@@ -74,7 +79,6 @@ export default function ProfilePage() {
                     return;
                 }
 
-                // 1. Fetch Unified Profile
                 const { data: profileData, error: profileError } = await supabase
                     .from("profiles")
                     .select("*")
@@ -90,13 +94,15 @@ export default function ProfilePage() {
                     });
                 }
 
-                // 3. Fetch Portfolio
-                const { data: portfolioData, error: portfolioError } = await supabase
-                    .from("photographer_portfolio")
-                    .select("*")
-                    .eq("photographer_id", user.id);
+                // Fetch Portfolio if photographer
+                if (profileData?.role === "photographer") {
+                    const { data: portfolioData } = await supabase
+                        .from("photographer_portfolio")
+                        .select("*")
+                        .eq("photographer_id", user.id);
 
-                if (portfolioData) setPortfolio(portfolioData);
+                    if (portfolioData) setPortfolio(portfolioData);
+                }
 
             } catch (err) {
                 console.error("Error fetching data:", err);
@@ -147,15 +153,13 @@ export default function ProfilePage() {
                 .from("profile_image")
                 .getPublicUrl(filePath);
 
-            // Update local state immediately
             setProfile(prev => prev ? ({ ...prev, profile_image_url: publicUrl }) : null);
-
-            // Save to DB immediately
             await supabase.from("profiles").update({ profile_image_url: publicUrl }).eq('id', profile.id);
+            toast.success("Profile photo updated");
 
         } catch (error) {
             console.error("Error uploading image:", error);
-            alert("Failed to upload image.");
+            toast.error("Failed to upload image.");
         } finally {
             setUploading(false);
         }
@@ -166,18 +170,16 @@ export default function ProfilePage() {
         if (!profile) return;
         setSaving(true);
         try {
-            // Update Unified Profile
             const { error } = await supabase.from("profiles").upsert({
                 ...profile,
                 updated_at: new Date().toISOString(),
             });
 
             if (error) throw error;
-
-            alert("Profile updated successfully!");
+            toast.success("Profile settings saved successfully");
         } catch (error: any) {
             console.error("Error saving profile:", error);
-            alert(`Failed to save profile: ${error.message}`);
+            toast.error(`Failed to save profile: ${error.message}`);
         } finally {
             setSaving(false);
         }
@@ -185,55 +187,47 @@ export default function ProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0D0D0D] text-white flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                    <p className="text-muted-foreground animate-pulse font-light tracking-widest uppercase text-xs">Developing Vision...</p>
-                </div>
+            <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
         );
     }
 
-    const displayName = profile?.full_name || "Artist";
-    // const memberSince = profile?.created_at ? new Date(profile.created_at).getFullYear() : "2025";
+    const displayName = profile?.full_name || "Account Settings";
 
     return (
-        <div className="min-h-screen bg-[#0D0D0D] text-white selection:bg-primary/30 font-sans">
-            <Header />
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-accent selection:text-white pb-24">
+            <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+                <Header />
+            </div>
 
             {/* Profile Hero Header */}
-            <section className="relative min-h-[50vh] pt-24 pb-12 overflow-hidden">
-                {/* Background */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--primary)/10,transparent_50%),radial-gradient(circle_at_bottom_left,var(--accent)/5,transparent_50%)]" />
-                <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px]" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0D0D0D]/40 to-[#0D0D0D]" />
-
-                <div className="container mx-auto max-w-7xl px-6 relative z-10">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-end gap-10">
-
+            <section className="relative pt-12 md:pt-24 pb-12 overflow-hidden border-b border-border/40 bg-muted/30">
+                <div className="container mx-auto max-w-5xl px-6 relative z-10">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-12">
+                        
                         {/* Avatar Section */}
-                        <div className="relative group shrink-0 mx-auto lg:mx-0">
-                            <div className="absolute -inset-1.5 bg-gradient-to-tr from-primary via-primary/50 to-accent rounded-full blur-md opacity-30 group-hover:opacity-60 transition duration-700"></div>
-                            <div className="relative h-48 w-48 md:h-64 md:w-64 rounded-full border-4 border-[#0D0D0D] bg-secondary/50 overflow-hidden shadow-2xl">
+                        <div className="relative group shrink-0">
+                            <div className="relative h-40 w-40 md:h-48 md:w-48 rounded-full border-4 border-background bg-secondary overflow-hidden shadow-2xl">
                                 {profile?.profile_image_url ? (
                                     <img
-                                        src={profile.profile_image_url}
-                                        className="h-full w-full object-cover transition-all duration-700"
+                                        src={profile?.profile_image_url}
+                                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         alt={displayName}
                                     />
                                 ) : (
-                                    <div className="h-full w-full flex items-center justify-center bg-primary/5">
-                                        <Camera className="h-16 w-16 text-primary/40" />
+                                    <div className="h-full w-full flex items-center justify-center bg-secondary">
+                                        <Camera className="h-12 w-12 text-muted-foreground/30" />
                                     </div>
                                 )}
 
                                 {/* Image Upload Overlay */}
                                 <div
-                                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity duration-300 backdrop-blur-sm"
+                                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity duration-300 backdrop-blur-sm"
                                     onClick={() => fileInputRef.current?.click()}
                                 >
-                                    <Camera className="h-8 w-8 text-white mb-2" />
-                                    <span className="text-xs font-bold uppercase tracking-widest text-white">Change Photo</span>
+                                    {uploading ? <Loader2 className="h-6 w-6 text-white animate-spin mb-2" /> : <Camera className="h-6 w-6 text-white mb-2" />}
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-white">{uploading ? "Uploading" : "Update Photo"}</span>
                                 </div>
                                 <input
                                     type="file"
@@ -243,264 +237,212 @@ export default function ProfilePage() {
                                     onChange={handleImageUpload}
                                 />
                             </div>
-                            {uploading && <div className="absolute bottom-0 left-0 right-0 text-center text-xs font-bold text-primary animate-pulse">Uploading...</div>}
                         </div>
 
                         {/* Title & Main Info (Editable) */}
-                        <div className="flex-1 space-y-6 w-full text-center lg:text-left">
+                        <div className="flex-1 space-y-6 w-full text-center md:text-left pt-2 md:pt-4">
                             <div className="space-y-4">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.2em]">
-                                    <Award className="w-3 h-3" />
-                                    <span>Verified Creator</span>
-                                </div>
+                                {profile?.role === "photographer" && (
+                                    <Badge variant="outline" className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                                        <Award className="w-3 h-3 mr-1.5" /> Verified Creator
+                                    </Badge>
+                                )}
 
-                                <div className="space-y-2">
+                                <div className="space-y-3 max-w-lg mx-auto md:mx-0">
                                     <Input
                                         name="full_name"
                                         value={profile?.full_name || ""}
                                         onChange={handleChange}
-                                        className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase p-0 border-0 bg-transparent placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 h-auto text-center lg:text-left"
-                                        placeholder="YOUR NAME"
+                                        className="text-4xl md:text-5xl font-bold tracking-tight p-0 border-0 bg-transparent placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 h-auto text-center md:text-left"
+                                        placeholder="Your Name"
                                     />
                                     <Input
                                         name="role"
                                         value={profile?.role || ""}
-                                        onChange={handleChange}
-                                        className="text-xl md:text-2xl font-light tracking-widest uppercase text-white/50 p-0 border-0 bg-transparent placeholder:text-white/10 focus-visible:ring-0 focus-visible:ring-offset-0 h-auto text-center lg:text-left"
-                                        placeholder="YOUR ROLE (e.g. VISUAL ARTIST)"
+                                        disabled
+                                        className="text-lg md:text-xl font-medium text-muted-foreground capitalize p-0 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-auto text-center md:text-left cursor-not-allowed opacity-70"
+                                        placeholder="Account Role"
                                     />
                                 </div>
                             </div>
-
-                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-muted-foreground text-sm font-medium tracking-wide">
-                                <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-                                    <Mail className="h-4 w-4 text-primary" />
-                                    <span className="opacity-80">{profile?.email}</span>
-                                </div>
-                                <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-                                    <Phone className="h-4 w-4 text-primary" />
-                                    <Input
-                                        name="phone"
-                                        value={profile?.phone || ""}
-                                        onChange={handleChange}
-                                        className="p-0 border-0 bg-transparent h-auto w-[150px] focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50"
-                                        placeholder="+1 (555) 000-0000"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-                                    <MapPin className="h-4 w-4 text-primary" />
-                                    <Input
-                                        name="location"
-                                        value={profile?.location || ""}
-                                        onChange={handleChange}
-                                        className="p-0 border-0 bg-transparent h-auto w-[150px] focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50"
-                                        placeholder="City, Country"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Save Actions */}
-                        <div className="flex flex-col gap-3 pb-2 w-full lg:w-auto">
-                            <Button
-                                size="2xl"
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="rounded-full px-10 shadow-[0_0_40px_-10px_var(--primary)] hover:scale-105 transition-transform active:scale-95"
-                            >
-                                {saving ? (
-                                    <>Saving...</>
-                                ) : (
-                                    <>
-                                        <Save className="mr-2 h-5 w-5" /> Save Changes
-                                    </>
+                            
+                            {/* Save Actions */}
+                            <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4 pt-4">
+                                <Button
+                                    size="lg"
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="rounded-xl px-8 font-semibold shadow-lg min-w-[160px]"
+                                >
+                                    {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving</> : <><Save className="mr-2 h-4 w-4" /> Save Settings</>}
+                                </Button>
+                                {profile?.role === "photographer" && (
+                                    <Button variant="outline" size="lg" className="rounded-xl px-8 bg-transparent" asChild>
+                                        <Link href={`/photographer/${profile.id}`}>
+                                            <ExternalLink className="h-4 w-4 mr-2" /> View Public Profile
+                                        </Link>
+                                    </Button>
                                 )}
-                            </Button>
-                            <Button variant="outline" size="2xl" className="rounded-full px-8 border-white/5 bg-white/[0.03] backdrop-blur-xl hover:bg-white/[0.08] transition-all">
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                View Public Profile
-                            </Button>
+                            </div>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
             {/* Main Content Sections */}
-            <main className="container mx-auto max-w-7xl px-6 py-12">
+            <main className="container mx-auto max-w-5xl px-6 py-12">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
 
                     {/* Left Sidebar: Details Form */}
-                    <aside className="lg:col-span-4 space-y-8">
-                        {profile?.role === "Photographer" && (
-                            <div className="p-6 rounded-3xl bg-secondary/10 border border-white/5 text-center">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hourly Rate</Label>
-                                <div className="flex items-center justify-center mt-2">
-                                    <span className="text-xl text-primary font-bold">$</span>
-                                    <Input
-                                        name="hourly_rate"
-                                        type="number"
-                                        value={profile?.hourly_rate || ""}
-                                        onChange={handleChange}
-                                        className="text-3xl font-black bg-transparent border-0 text-center w-24 p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Stats / Quick Info */}
-                        {profile?.role === "photographer" && (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-6 rounded-3xl bg-secondary/10 border border-white/5 text-center">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hourly Rate</Label>
-                                <div className="flex items-center justify-center mt-2">
-                                    <span className="text-xl text-primary font-bold">$</span>
-                                    <Input
-                                        name="hourly_rate"
-                                        type="number"
-                                        value={profile?.hourly_rate || ""}
-                                        onChange={handleChange}
-                                        className="text-3xl font-black bg-transparent border-0 text-center w-24 p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </div>
-                            <div className="p-6 rounded-3xl bg-secondary/10 border border-white/5 text-center">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Experience</Label>
-                                <div className="flex items-center justify-center mt-2">
-                                    <Input
-                                        name="experience"
-                                        type="number"
-                                        value={profile?.experience || ""}
-                                        onChange={handleChange}
-                                        className="text-3xl font-black bg-transparent border-0 text-center w-20 p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
-                                        placeholder="0"
-                                    />
-                                    <span className="text-sm font-bold text-muted-foreground ml-1">Yrs</span>
-                                </div>
-                            </div>
-                        </div>
-                        )}
-                        {/* Bio Section */}
-
-                        {profile?.role === "photographer" && (
-                        <div className="space-y-4 p-8 rounded-[2rem] bg-secondary/5 border border-white/5">
-                            <h2 className="text-xs font-black tracking-[0.2em] uppercase text-primary flex items-center gap-2">
-                                <Briefcase className="h-4 w-4" /> About You
+                    <div className="lg:col-span-12 space-y-12">
+                        
+                        {/* Contact Information */}
+                        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="space-y-6">
+                            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 border-b border-border/50 pb-4">
+                                <Mail className="h-5 w-5 text-accent" /> Contact Details
                             </h2>
-                            <Textarea
-                                name="bio"
-                                value={profile?.bio || ""}
-                                onChange={handleChange}
-                                className="min-h-[150px] bg-black/20 border-white/10 rounded-xl resize-none text-muted-foreground leading-relaxed focus:border-primary/50 transition-colors"
-                                placeholder="Tell your story. Describe your style, vision, and what makes your work unique..."
-                            />
-                        </div>
-                        )}
-
-                        {/* Specialties Section */}
-                        {profile?.role === "photographer" && (
-                        <div className="space-y-4 p-8 rounded-[2rem] bg-secondary/5 border border-white/5">
-                            <h2 className="text-xs font-black tracking-[0.2em] uppercase text-primary flex items-center gap-2">
-                                <Star className="h-4 w-4" /> Specialties
-                            </h2>
-                            <div className="flex flex-wrap gap-2">
-                                {AVAILABLE_SPECIALTIES.map(tech => {
-                                    const isSelected = profile?.specialties?.includes(tech);
-                                    return (
-                                        <button
-                                            key={tech}
-                                            onClick={() => toggleSpecialty(tech)}
-                                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all duration-300 ${isSelected
-                                                ? "bg-primary text-black border-primary"
-                                                : "bg-transparent text-muted-foreground border-white/10 hover:border-white/30 hover:text-white"
-                                                }`}
-                                        >
-                                            {tech}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        )}
-                        {/* Web Links */}
-                        <div className="space-y-4 p-8 rounded-[2rem] bg-secondary/5 border border-white/5">
-                            <h2 className="text-xs font-black tracking-[0.2em] uppercase text-primary flex items-center gap-2">
-                                <Globe className="h-4 w-4" /> Online Presence
-                            </h2>
-                            <div className="space-y-3">
-                                <div>
-                                    <Label className="text-[10px] uppercase text-muted-foreground mb-1.5 block">Portfolio URL</Label>
-                                    <Input
-                                        name="portfolio_url"
-                                        value={profile?.portfolio_url || ""}
-                                        onChange={handleChange}
-                                        className="bg-black/20 border-white/10 rounded-lg h-9 text-sm"
-                                        placeholder="https://your-portfolio.com"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </aside>
-
-                    {/* Right Content: Portfolio Gallery Preview */}
-                    {profile?.role === "photographer" && (
-                    <div className="lg:col-span-8 space-y-8">
-                        <div className="flex items-end justify-between border-b border-white/5 pb-2">
-                            <div className="space-y-2">
-                                <h2 className="text-[10px] font-black tracking-[0.4em] uppercase text-primary">Your Work</h2>
-                                <h3 className="text-3xl font-black uppercase tracking-tight">Portfolio Preview</h3>
-                            </div>
-                            <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary/80">
-                                <Link href="/dashboard/portfolio">Manage Portfolio →</Link>
-                            </Button>
-                        </div>
-
-                        {portfolio.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {portfolio.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className="group relative h-[300px] rounded-3xl overflow-hidden bg-secondary/30 ring-1 ring-white/5 hover:ring-primary/20 transition-all duration-500"
-                                    >
-                                        <img
-                                            src={item.image_url[0]}
-                                            alt={item.title}
-                                            className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110 grayscale-[20%] group-hover:grayscale-0"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
-                                        <div className="absolute bottom-0 left-0 right-0 p-6">
-                                            <h4 className="text-xl font-bold uppercase tracking-tight text-white mb-1">{item.title}</h4>
-                                            <p className="text-xs text-white/60 line-clamp-1">{item.description}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                                {/* Add New Placeholder */}
-                                <Link href="/dashboard/portfolio" className="group h-[300px] rounded-3xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer">
-                                    <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <Camera className="text-white/20 group-hover:text-primary transition-colors h-6 w-6" />
-                                    </div>
-                                    <span className="text-xs font-bold uppercase tracking-widest text-white/30 group-hover:text-primary transition-colors">Add New Work</span>
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="py-20 text-center space-y-6 bg-secondary/5 rounded-[3rem] border border-dashed border-white/10">
-                                <div className="h-20 w-20 mx-auto rounded-full bg-primary/5 flex items-center justify-center">
-                                    <Camera className="h-8 w-8 text-primary/30" />
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Email Address</Label>
+                                    <Input disabled value={profile?.email || ""} className="bg-secondary/20 h-12 rounded-xl text-muted-foreground cursor-not-allowed border-transparent" />
                                 </div>
                                 <div className="space-y-2">
-                                    <h4 className="text-xl font-black uppercase tracking-widest text-white/50">Empty Gallery</h4>
-                                    <p className="text-muted-foreground text-xs font-light max-w-xs mx-auto">
-                                        Your portfolio is the most critical part of your profile. Start building it now.
-                                    </p>
+                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Phone Number</Label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input name="phone" value={profile?.phone || ""} onChange={handleChange} placeholder="+1 (555) 000-0000" className="pl-11 bg-secondary/30 h-12 rounded-xl border-transparent focus-visible:ring-accent transition-all" />
+                                    </div>
                                 </div>
-                                <Button asChild variant="outline" className="rounded-full border-primary/20 bg-primary/5 hover:bg-primary/10">
-                                    <Link href="/dashboard/portfolio">Upload Collection</Link>
-                                </Button>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Location</Label>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input name="location" value={profile?.location || ""} onChange={handleChange} placeholder="City, State, Country" className="pl-11 bg-secondary/30 h-12 rounded-xl border-transparent focus-visible:ring-accent transition-all" />
+                                    </div>
+                                </div>
                             </div>
+                        </motion.section>
+
+                        {/* Professional Information */}
+                        {profile?.role === "photographer" && (
+                            <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="space-y-6">
+                                <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 border-b border-border/50 pb-4">
+                                    <Briefcase className="h-5 w-5 text-accent" /> Professional Overview
+                               </h2>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Hourly Rate ($)</Label>
+                                        <Input name="hourly_rate" type="number" value={profile?.hourly_rate || ""} onChange={handleChange} placeholder="150" className="bg-secondary/30 h-12 rounded-xl border-transparent font-semibold focus-visible:ring-accent transition-all" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Years Experience</Label>
+                                        <Input name="experience" type="number" value={profile?.experience || ""} onChange={handleChange} placeholder="5" className="bg-secondary/30 h-12 rounded-xl border-transparent font-semibold focus-visible:ring-accent transition-all" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Biography & Creative Vision</Label>
+                                    <Textarea
+                                        name="bio"
+                                        value={profile?.bio || ""}
+                                        onChange={handleChange}
+                                        className="min-h-[160px] bg-secondary/30 border-transparent rounded-xl resize-none leading-relaxed focus-visible:ring-accent transition-all p-5"
+                                        placeholder="Describe your style, vision, and what makes your work unique..."
+                                    />
+                                </div>
+
+                                <div className="space-y-4 pt-2">
+                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Creative Specialties</Label>
+                                    <div className="flex flex-wrap gap-2.5">
+                                        {AVAILABLE_SPECIALTIES.map(tech => {
+                                            const isSelected = profile?.specialties?.includes(tech);
+                                            return (
+                                                <button
+                                                    key={tech}
+                                                    onClick={() => toggleSpecialty(tech)}
+                                                    className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wide border transition-all duration-200 ${isSelected
+                                                        ? "bg-foreground text-background border-foreground shadow-md"
+                                                        : "bg-transparent text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground"
+                                                        }`}
+                                                >
+                                                    {tech}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">External Portfolio Link</Label>
+                                    <div className="relative">
+                                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            name="portfolio_url"
+                                            value={profile?.portfolio_url || ""}
+                                            onChange={handleChange}
+                                            className="pl-11 bg-secondary/30 h-12 rounded-xl border-transparent focus-visible:ring-accent transition-all"
+                                            placeholder="https://your-portfolio.com"
+                                        />
+                                    </div>
+                                </div>
+                            </motion.section>
                         )}
+                        
+                        {/* Portfolio Gallery Preview */}
+                        {profile?.role === "photographer" && (
+                            <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="space-y-6 pt-6">
+                                <div className="flex items-center justify-between border-b border-border/50 pb-4">
+                                     <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                                        <ImageIcon className="h-5 w-5 text-accent" /> Selected Works
+                                    </h2>
+                                    <Button asChild variant="ghost" size="sm" className="text-accent hover:text-accent/80 font-semibold hidden sm:flex">
+                                        <Link href="/dashboard/portfolio">Manage Portfolio →</Link>
+                                    </Button>
+                                </div>
+
+                                {portfolio.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                        {portfolio.map((item) => (
+                                            <div key={item.id} className="group relative aspect-[4/5] rounded-2xl overflow-hidden bg-muted">
+                                                <img
+                                                    src={item.image_url[0]}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+                                                <div className="absolute bottom-0 left-0 right-0 p-5">
+                                                    <h4 className="text-base font-bold text-white line-clamp-1">{item.title}</h4>
+                                                    <p className="text-xs text-white/70 line-clamp-1 mt-1">{item.description}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <Link href="/dashboard/portfolio" className="group aspect-[4/5] rounded-2xl border border-dashed border-border/80 flex flex-col items-center justify-center gap-3 hover:border-accent hover:bg-accent/5 transition-all cursor-pointer">
+                                            <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <Camera className="text-muted-foreground group-hover:text-accent transition-colors h-5 w-5" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-accent transition-colors">Add New Work</span>
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <div className="py-16 text-center bg-secondary/20 rounded-3xl border border-dashed border-border/50">
+                                        <Camera className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                                        <h4 className="text-lg font-bold">Empty Gallery</h4>
+                                        <p className="text-sm text-muted-foreground mt-2 mb-6 max-w-sm mx-auto">
+                                            Your portfolio is the most critical part of your profile. Start building it now to attract clients.
+                                        </p>
+                                        <Button asChild className="rounded-xl px-6">
+                                            <Link href="/dashboard/portfolio">Upload First Collection</Link>
+                                        </Button>
+                                    </div>
+                                )}
+                                <Button asChild variant="outline" size="lg" className="w-full sm:hidden rounded-xl bg-transparent">
+                                    <Link href="/dashboard/portfolio">Manage Portfolio</Link>
+                                </Button>
+                            </motion.section>
+                        )}
+
                     </div>
-                    )}
                 </div>
             </main>
         </div>
