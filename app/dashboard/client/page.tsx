@@ -1,10 +1,8 @@
 "use client";
-import React, { useState } from "react";
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
@@ -19,10 +17,11 @@ import {
   Heart,
   Settings,
   MessageSquare,
+  MapPin
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { MapPin } from "lucide-react";
+import { motion } from "framer-motion";
 
 type Booking = {
   id: string;
@@ -36,7 +35,7 @@ type Booking = {
   location: string;
   message?: string;
   profiles?: {
-    full_name: string;
+  full_name: string;
   };
 };
 
@@ -48,7 +47,6 @@ export default function ClientDashboardPage() {
 
   const fetchBookings = async () => {
     if (!user) return;
-
     setLoading(true);
     const { data, error } = await supabase
       .from("bookings")
@@ -61,7 +59,6 @@ export default function ClientDashboardPage() {
       setLoading(false);
       return;
     }
-
     setBookings(data || []);
     setLoading(false);
   };
@@ -74,218 +71,139 @@ export default function ClientDashboardPage() {
 
   useEffect(() => {
     if (!isLoading) {
-      if (!user) {
-        // Not logged in - redirect to login
-        router.push("/login");
-      } else if (user.role === "photographer") {
-        // Wrong role - redirect to photographer dashboard
-        router.push("/dashboard");
-      }
+      if (!user) router.push("/login");
+      else if (user.role === "photographer") router.push("/dashboard");
     }
   }, [user, isLoading, router]);
 
   const handleCancelBooking = async (id: string) => {
-    if (!window.confirm("Are you sure you want to cancel and delete this booking?")) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to cancel and delete this booking request?")) return;
 
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled" })
-      .eq("id", id);
-
+    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", id);
     if (error) {
       console.error("Error cancelling booking:", error);
-      alert("Failed to cancel booking. Please try again.");
+      toast.error("Failed to cancel booking. Please try again.");
       return;
     }
-
     setBookings((prev) => prev.filter((b) => b.id !== id));
     toast.success("Booking cancelled successfully");
     fetchBookings();
   };
 
-  if (isLoading || !user || user.role !== "client") {
-    return null;
-  }
+  if (isLoading || !user || user.role !== "client") return null;
 
-  const upcomingBookings = bookings.filter(
-    (b) => b.status === "confirmed" && b.start_time && new Date(b.start_time).getTime() > new Date().getTime()
-  );
+  const upcomingBookings = bookings.filter((b) => (b.status === "confirmed" || b.status === "accepted") && b.start_time && new Date(b.start_time).getTime() > new Date().getTime());
   const pendingBookings = bookings.filter((b) => b.status === "pending");
-  const completedBookings = bookings.filter(
-    (b) => b.status === "completed"
-  );
+  const completedBookings = bookings.filter((b) => b.status === "completed");
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-accent selection:text-white">
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <Header />
+      </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">My Bookings</h1>
-            <p className="text-muted-foreground">Welcome back, {user.name}</p>
+      <div className="container mx-auto px-4 py-12 max-w-[1440px]">
+        {/* Cinematic Header */}
+        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/50 pb-8">
+          <div className="space-y-2">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">Client Portal</h1>
+            <p className="text-lg text-muted-foreground font-normal">Welcome back, <span className="text-foreground font-medium">{user.name}</span></p>
           </div>
-          <div className="flex gap-3">
-            <Button asChild className="bg-primary">
-              <Link href="/photographers">
-                <Search className="h-4 w-4 mr-2" />
-                Find Photographers
-              </Link>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild className="rounded-full h-12 px-6 bg-foreground text-background font-semibold hover:bg-foreground/90">
+              <Link href="/photographers"><Search className="h-4 w-4 mr-2" /> Find Photographers</Link>
             </Button>
-            <Button variant="outline" asChild className="bg-transparent">
-              <Link href="/client-dashboard/favorites">
-                <Heart className="h-4 w-4 mr-2" />
-                Favorites
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="bg-transparent">
-              <Link href="/client-dashboard/settings">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Link>
+            <Button variant="outline" asChild className="rounded-full h-12 px-6 bg-secondary/30 border-none hover:bg-secondary/50">
+              <Link href="/dashboard/settings"><Settings className="h-4 w-4 mr-2" /> Settings</Link>
             </Button>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Bookings
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{bookings.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">All time</p>
-            </CardContent>
-          </Card>
+        {/* Minimalist Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="p-8 rounded-[2rem] bg-secondary/20 border border-border/40 hover:bg-secondary/30 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Total Bookings</h3>
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center"><Calendar className="w-5 h-5 text-accent" /></div>
+            </div>
+            <div className="text-5xl font-bold tracking-tight mb-2">{bookings.length}</div>
+            <p className="text-sm font-medium text-muted-foreground">Lifetime shoots</p>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Upcoming
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {upcomingBookings.length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Confirmed sessions
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="p-8 rounded-[2rem] bg-accent border border-border/40 group overflow-hidden relative">
+             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center justify-between mb-4 relative z-10">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-white/80">Upcoming</h3>
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><Clock className="w-5 h-5 text-white" /></div>
+            </div>
+            <div className="text-5xl font-bold tracking-tight mb-2 text-white relative z-10">{upcomingBookings.length}</div>
+            <p className="text-sm font-medium text-white/80 relative z-10">Confirmed sessions</p>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pending
-              </CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{pendingBookings.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Awaiting response
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="p-8 rounded-[2rem] bg-secondary/20 border border-border/40 hover:bg-secondary/30 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Pending</h3>
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center"><AlertCircle className="w-5 h-5 text-accent" /></div>
+            </div>
+            <div className="text-5xl font-bold tracking-tight mb-2">{pendingBookings.length}</div>
+            <p className="text-sm font-medium text-muted-foreground">Awaiting response</p>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Completed
-              </CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {completedBookings.length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Finished sessions
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="p-8 rounded-[2rem] bg-secondary/20 border border-border/40 hover:bg-secondary/30 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Completed</h3>
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-accent" /></div>
+            </div>
+            <div className="text-5xl font-bold tracking-tight mb-2">{completedBookings.length}</div>
+            <p className="text-sm font-medium text-muted-foreground">Finished sessions</p>
+          </motion.div>
         </div>
 
-        {/* Bookings Tabs */}
-        <Tabs defaultValue="upcoming" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="upcoming">
-              Upcoming ({upcomingBookings.length})
+        {/* Elegant Bookings Tabs */}
+        <Tabs defaultValue="upcoming" className="space-y-8">
+          <TabsList className="bg-transparent border-b border-border/50 rounded-none w-full justify-start h-auto p-0 gap-8">
+            <TabsTrigger value="upcoming" className="text-lg font-medium tracking-tight data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-foreground rounded-none px-0 pb-4 text-muted-foreground transition-none">
+              Upcoming <Badge variant="secondary" className="ml-2 bg-secondary text-foreground">{upcomingBookings.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="pending">
-              Pending ({pendingBookings.length})
+            <TabsTrigger value="pending" className="text-lg font-medium tracking-tight data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-foreground rounded-none px-0 pb-4 text-muted-foreground transition-none">
+              Pending Validation <Badge variant="secondary" className="ml-2 bg-secondary text-foreground">{pendingBookings.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="completed">
-              Completed ({completedBookings.length})
+            <TabsTrigger value="completed" className="text-lg font-medium tracking-tight data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-foreground rounded-none px-0 pb-4 text-muted-foreground transition-none">
+              Archived <Badge variant="secondary" className="ml-2 bg-secondary text-foreground">{completedBookings.length}</Badge>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upcoming" className="space-y-4">
+          <TabsContent value="upcoming" className="space-y-4 outline-none">
             {upcomingBookings.length > 0 ? (
-              upcomingBookings.map((booking) => (
-                <ClientBookingCard
-                  key={booking.id}
-                  booking={booking}
-                  showCancel
-                  onCancel={handleCancelBooking}
-                />
-              ))
+              upcomingBookings.map((booking) => <ClientBookingCard key={booking.id} booking={booking} showCancel onCancel={handleCancelBooking} />)
             ) : (
-              <Card className="p-12 text-center">
-                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-4">
-                  No upcoming bookings
-                </p>
-                <Button asChild>
-                  <Link href="/photographers">Find a Photographer</Link>
-                </Button>
-              </Card>
+              <div className="py-24 text-center rounded-3xl bg-secondary/10 border border-dashed border-border/50">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                <p className="text-lg font-medium text-muted-foreground mb-6">Your calendar is clear.</p>
+                <Button asChild className="rounded-full px-8 bg-foreground text-background hover:bg-foreground/90"><Link href="/search">Explore Talent</Link></Button>
+              </div>
             )}
           </TabsContent>
 
-          <TabsContent value="pending" className="space-y-4">
+          <TabsContent value="pending" className="space-y-4 outline-none">
             {pendingBookings.length > 0 ? (
-              pendingBookings.map((booking) => (
-                <ClientBookingCard
-                  key={booking.id}
-                  booking={booking}
-                  showCancel
-                  onCancel={handleCancelBooking}
-                />
-              ))
+              pendingBookings.map((booking) => <ClientBookingCard key={booking.id} booking={booking} showCancel onCancel={handleCancelBooking} />)
             ) : (
-              <Card className="p-12 text-center">
-                <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No pending requests</p>
-              </Card>
+              <div className="py-24 text-center rounded-3xl bg-secondary/10 border border-dashed border-border/50">
+                <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                <p className="text-lg font-medium text-muted-foreground">No pending requests.</p>
+              </div>
             )}
           </TabsContent>
 
-          <TabsContent value="completed" className="space-y-4">
+          <TabsContent value="completed" className="space-y-4 outline-none">
             {completedBookings.length > 0 ? (
-              completedBookings.map((booking) => (
-                <ClientBookingCard
-                  key={booking.id}
-                  booking={booking}
-                  showReview
-                />
-              ))
+              completedBookings.map((booking) => <ClientBookingCard key={booking.id} booking={booking} showReview />)
             ) : (
-              <Card className="p-12 text-center">
-                <CheckCircle2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  No completed bookings yet
-                </p>
-              </Card>
+              <div className="py-24 text-center rounded-3xl bg-secondary/10 border border-dashed border-border/50">
+                <CheckCircle2 className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                <p className="text-lg font-medium text-muted-foreground">Completed bookings will appear here.</p>
+              </div>
             )}
           </TabsContent>
         </Tabs>
@@ -294,138 +212,68 @@ export default function ClientDashboardPage() {
   );
 }
 
-function ClientBookingCard({
-  booking,
-  showCancel = false,
-  showReview = false,
-  onCancel,
-}: {
-  booking: any;
-  showCancel?: boolean;
-  showReview?: boolean;
-  onCancel?: (id: string) => void;
-}) {
+function ClientBookingCard({ booking, showCancel = false, showReview = false, onCancel }: { booking: any; showCancel?: boolean; showReview?: boolean; onCancel?: (id: string) => void; }) {
   const statusConfig = {
-    pending: {
-      icon: AlertCircle,
-      color: "text-yellow-600",
-      bg: "bg-yellow-50",
-      label: "Pending",
-    },
-    confirmed: {
-      icon: CheckCircle2,
-      color: "text-green-600",
-      bg: "bg-green-50",
-      label: "Confirmed",
-    },
-    completed: {
-      icon: CheckCircle2,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      label: "Completed",
-    },
-    accepted: {
-      icon: CheckCircle2,
-      color: "text-green-600",
-      bg: "bg-green-50",
-      label: "Accepted",
-    },
-    cancelled: {
-      icon: XCircle,
-      color: "text-red-600",
-      bg: "bg-red-50",
-      label: "Cancelled",
-    },
+    pending: { icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20", label: "Awaiting Response" },
+    confirmed: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", label: "Confirmed" },
+    completed: { icon: CheckCircle2, color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/20", label: "Completed" },
+    accepted: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", label: "Accepted" },
+    cancelled: { icon: XCircle, color: "text-red-500", bg: "bg-red-500/10 border-red-500/20", label: "Cancelled" },
   };
 
   const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.pending;
   const StatusIcon = status.icon;
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex-1 space-y-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold text-lg capitalize">{booking.shoot_type}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Photographer: {booking.profiles?.full_name || "Unknown Photographer"}
-                </p>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {booking.location}
-                </div>
-              </div>
-              <Badge
-                variant="secondary"
-                className={`${status.bg} ${status.color} border-0`}
-              >
-                <StatusIcon className="h-3 w-3 mr-1" />
-                {status.label}
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-8 rounded-3xl bg-secondary/20 border border-border/40 hover:bg-secondary/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex-1 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="font-bold text-2xl tracking-tight capitalize">{booking.shoot_type}</h3>
+              <Badge variant="outline" className={`${status.bg} ${status.color} font-semibold uppercase tracking-widest px-3 py-1 text-[10px]`}>
+                <StatusIcon className="h-3 w-3 mr-1.5" />{status.label}
               </Badge>
             </div>
-
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {booking.start_time ? new Date(booking.start_time).toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  }) : "Date N/A"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {booking.start_time ? new Date(booking.start_time).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }) : "Time N/A"} ({booking.duration_hours} {booking.duration_hours === 1 ? 'hour' : 'hours'})
-                </span>
-              </div>
-              <div className="flex items-center gap-2 font-semibold text-primary">
-                ${booking.total_price || 0}
-              </div>
-            </div>
-
-            {booking.message && (
-              <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md italic">
-                "{booking.message}"
-              </p>
-            )}
+            <p className="text-muted-foreground font-medium">Photographer: <span className="text-foreground">{booking.profiles?.full_name || "Unknown"}</span></p>
           </div>
-
-          <div className="flex md:flex-col gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 md:flex-none bg-transparent"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Message
-            </Button>
-            {showCancel && (
-              <Button
-                size="sm"
-                variant="destructive"
-                className="flex-1 md:flex-none"
-                onClick={() => onCancel?.(booking.id)}
-              >
-                Cancel
-              </Button>
-            )}
-            {showReview && (
-              <Button size="sm" className="flex-1 md:flex-none">
-                Leave Review
-              </Button>
-            )}
+          <div className="sm:text-right">
+             <div className="text-3xl font-bold tracking-tight">${booking.total_price || 0}</div>
+             <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Total Cost</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="flex flex-wrap gap-6 text-sm font-medium">
+          <div className="flex items-center gap-2.5 bg-background/50 px-4 py-2 rounded-xl border border-border/30">
+            <Calendar className="h-4 w-4 text-accent" />
+            <span>{booking.start_time ? new Date(booking.start_time).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric", }) : "Date N/A"}</span>
+          </div>
+          <div className="flex items-center gap-2.5 bg-background/50 px-4 py-2 rounded-xl border border-border/30">
+            <Clock className="h-4 w-4 text-accent" />
+            <span>{booking.start_time ? new Date(booking.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", }) : "Time N/A"} ({booking.duration_hours} {booking.duration_hours === 1 ? 'hr' : 'hrs'})</span>
+          </div>
+           <div className="flex items-center gap-2.5 bg-background/50 px-4 py-2 rounded-xl border border-border/30">
+            <MapPin className="h-4 w-4 text-accent" />
+            <span>{booking.location}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex md:flex-col gap-3 shrink-0 mt-4 md:mt-0">
+        <Button size="lg" className="rounded-xl font-semibold bg-foreground text-background hover:bg-foreground/90 flex-1 md:w-40" asChild>
+          <Link href={`/messages?to=${booking.photographer_id}`}><MessageSquare className="h-4 w-4 mr-2" /> Message</Link>
+        </Button>
+        {showCancel && (
+          <Button size="lg" variant="outline" className="rounded-xl font-semibold text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex-1 md:w-40 bg-transparent" onClick={() => onCancel?.(booking.id)}>
+            Cancel Request
+          </Button>
+        )}
+        {showReview && (
+          <Button size="lg" variant="outline" className="rounded-xl font-semibold bg-transparent flex-1 md:w-40 border-border/50">
+            Write Review
+          </Button>
+        )}
+      </div>
+    </motion.div>
   );
 }
