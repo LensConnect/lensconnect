@@ -252,7 +252,7 @@ export default function HomePage() {
             <h2 className="text-4xl md:text-5xl font-black tracking-tight">Hire a Visionary.</h2>
             <p className="text-lg text-white/70 font-medium">Commission world-class talent for your next defining campaign or life event.</p>
             <Button size="lg" className="rounded-full h-14 px-10 text-base font-bold bg-white text-black hover:bg-white/90">
-              <Link href="/search">Find a Photographer</Link>
+              <Link href="/photographers">Find a Photographer</Link>
             </Button>
           </div>
         </div>
