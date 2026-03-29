@@ -53,3 +53,27 @@ export interface Message {
   createdAt: Date
   read: boolean
 }
+
+export interface Job {
+  id: string
+  clientId: string
+  title: string
+  description: string
+  location: string
+  category: string
+  date: Date
+  durationHours: number
+  budget: number
+  status: "open" | "filled" | "cancelled" | "completed"
+  createdAt: Date
+}
+
+export interface JobApplication {
+  id: string
+  jobId: string
+  photographerId: string
+  message: string
+  bidAmount?: number
+  status: "pending" | "accepted" | "rejected"
+  createdAt: Date
+}

@@ -1,4 +1,4 @@
-import type { PhotographerProfile, Review, User, Booking, Message } from "./types"
+import type { PhotographerProfile, Review, User, Booking, Message, Job, JobApplication } from "./types"
 
 export const mockPhotographers: (PhotographerProfile & { user: User })[] = [
   {
@@ -261,5 +261,46 @@ export const mockMessages: Message[] = [
       "7 hours of coverage is perfect for a wedding. I'll capture everything from getting ready to the reception. My rate is $250/hour. Would you like to proceed with a booking?",
     createdAt: new Date("2025-01-05T12:00:00"),
     read: false,
+  },
+]
+
+export const mockJobs: Job[] = [
+  {
+    id: "j1",
+    clientId: "c1",
+    title: "Summer Wedding in Central Park",
+    description: "Looking for a photographer for a 4-hour outdoor wedding ceremony. Candid shots are a priority.",
+    location: "Central Park, NY",
+    category: "Weddings",
+    date: new Date("2025-06-15T14:00:00"),
+    durationHours: 4,
+    budget: 1000,
+    status: "open",
+    createdAt: new Date("2025-03-20T10:00:00"),
+  },
+  {
+    id: "j2",
+    clientId: "c2",
+    title: "Startup Headshots",
+    description: "Need professional headshots for our team of 10 people. Fast turnaround needed.",
+    location: "Brooklyn, NY",
+    category: "Headshots",
+    date: new Date("2025-04-10T10:00:00"),
+    durationHours: 3,
+    budget: 600,
+    status: "open",
+    createdAt: new Date("2025-03-22T09:30:00"),
+  },
+]
+
+export const mockJobApplications: JobApplication[] = [
+  {
+    id: "ja1",
+    jobId: "j1",
+    photographerId: "p1",
+    message: "I'd love to capture your wedding! I have extensive experience with outdoor events in Central Park.",
+    bidAmount: 1000,
+    status: "pending",
+    createdAt: new Date("2025-03-21T11:00:00"),
   },
 ]

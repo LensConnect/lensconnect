@@ -22,6 +22,7 @@ import {
   LayoutDashboard,
   Shield,
   Search,
+  PlusSquare,
 } from "lucide-react";
 import next from "next";
 import {
@@ -99,6 +100,8 @@ export function Header() {
 
   const navLinks = [
     { href: "/photographers", label: "Find Photographers", roles: ["client", "photographer", ], icon: Search },
+    { href: "/photographer/find-jobs", label: "Find Jobs", roles: ["photographer"], icon: Search },
+    { href: "/dashboard/client/post-job", label: "Post a Job", roles: ["client"], icon: PlusSquare },
     { href: "/how-it-works", label: "How It Works", roles: ["client", "photographer"], icon: Camera }, // Placeholder icon
     { href: "/dashboard/client", label: "Dashboard", roles: ["client"], icon: LayoutDashboard },
     { href: "/dashboard", label: "Dashboard", roles: ["photographer"], icon: LayoutDashboard },

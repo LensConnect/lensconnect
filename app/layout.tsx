@@ -1,9 +1,9 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
-
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth-context";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 import { Suspense } from "react";
 
@@ -27,9 +27,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
-        <Suspense fallback={<div>Loading...</div>}>
-          <AuthProvider>{children}</AuthProvider>
-        </Suspense>
+        <Providers>
+          <Suspense fallback={<div>Loading...</div>}>
+            <AuthProvider>{children}</AuthProvider>
+          </Suspense>
+        </Providers>
         <Analytics />
       </body>
     </html>
