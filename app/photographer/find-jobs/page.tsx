@@ -26,6 +26,21 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card } from "@/components/ui/card"
 import {Header} from "@/components/header"
 
+
+interface jobs{
+  id:string;
+  title:string;
+  status:string;
+  location:string;
+  category:string;
+  date:Date;
+  duration_hours:number;
+  budget:number;
+  client_id:string;
+  description:string;
+  created_at:Date;
+}
+
 export default function FindJobsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
@@ -36,7 +51,7 @@ export default function FindJobsPage() {
       const { data, error } = await supabase.from('jobs').select('*').order('created_at', { ascending: false })
       if (error) throw error
       
-      return data.map((job: any) => ({
+      return data.map((job:jobs) => ({
         id: job.id,
         clientId: job.client_id,
         title: job.title,
@@ -67,24 +82,29 @@ export default function FindJobsPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-secondary/10 flex flex-col font-sans selection:bg-accent selection:text-white">
       <Header />
-    <div className="container py-10 px-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
-        <div>
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">Find Photography Jobs</h1>
-          <p className="text-xl text-muted-foreground mt-2">
-            Browse open listings and apply to projects that match your style.
-          </p>
+      
+      {/* Elevated Header Section */}
+      <div className="bg-background border-b border-border/40 py-12 md:py-16">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Find Photography Jobs</h1>
+            <p className="text-lg md:text-xl text-muted-foreground font-medium">
+              Browse open listings, discover your next creative project, and connect with high-end clients.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+      {/* Main Content Area */}
+      <main className="container mx-auto px-4 md:px-6 py-10 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 md:gap-12">
         {/* Filters Sidebar */}
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4" />
+        <div className="space-y-6 lg:sticky lg:top-24 self-start">
+          <Card className="p-6 border-border/50 shadow-sm rounded-2xl bg-background">
+            <h3 className="font-bold text-lg mb-6 flex items-center gap-2 tracking-tight">
+              <SlidersHorizontal className="h-5 w-5 text-primary" />
               Filters
             </h3>
             
@@ -136,10 +156,10 @@ export default function FindJobsPage() {
             </div>
           </Card>
 
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Pro Tip</AlertTitle>
-            <AlertDescription>
+          <Alert className="bg-primary/5 border-primary/20 text-primary rounded-xl">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            <AlertTitle className="font-bold tracking-tight">Pro Tip</AlertTitle>
+            <AlertDescription className="font-medium mt-1">
               Complete your portfolio to increase your chances of being hired by 40%.
             </AlertDescription>
           </Alert>
@@ -185,8 +205,8 @@ export default function FindJobsPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+        </div>
+      </main>
     </div>
   )
 }

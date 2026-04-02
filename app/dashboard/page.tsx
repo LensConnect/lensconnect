@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabaseClient";
 import {
   Calendar,
-  DollarSign,
   TrendingUp,
   Clock,
   CheckCircle2,
@@ -134,11 +133,11 @@ export default function PhotographerDashboardPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="p-8 rounded-[2rem] bg-secondary/20 border border-border/40 hover:bg-secondary/30 transition-colors">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Earnings (YTD)</h3>
-              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center"><DollarSign className="w-5 h-5 text-accent" /></div>
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center"><span className="font-extrabold text-xl text-accent">₦</span></div>
             </div>
-            <div className="text-5xl font-bold tracking-tight mb-2">${totalEarnings.toLocaleString()}</div>
+            <div className="text-5xl font-bold tracking-tight mb-2">₦{totalEarnings.toLocaleString()}</div>
             <div className="flex items-center gap-2 text-sm font-medium text-emerald-500">
-              <TrendingUp className="w-4 h-4" /> <span>+${thisMonthEarnings.toLocaleString()} this month</span>
+              <TrendingUp className="w-4 h-4" /> <span>+₦{thisMonthEarnings.toLocaleString()} this month</span>
             </div>
           </motion.div>
 
@@ -243,7 +242,7 @@ function PhotographerBookingCard({ booking, showActions = false, onStatusUpdate 
             <p className="text-muted-foreground font-medium">Client: <span className="text-foreground">{booking.profiles?.full_name || "Confidential"}</span></p>
           </div>
           <div className="text-right">
-             <div className="text-3xl font-bold tracking-tight">${booking.total_price || 0}</div>
+             <div className="text-3xl font-bold tracking-tight">₦{booking.total_price || 0}</div>
              <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Total Revenue</p>
           </div>
         </div>

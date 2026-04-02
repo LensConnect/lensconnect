@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, Camera, Calendar, DollarSign, TrendingUp, Activity } from "lucide-react"
+import { Users, Camera, Calendar, TrendingUp, Activity } from "lucide-react"
 import { mockPhotographers, mockBookings, mockReviews } from "@/lib/mock-data"
 
 export default function AdminDashboardPage() {
@@ -65,11 +65,11 @@ export default function AdminDashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Platform Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <span className="h-4 w-4 flex items-center justify-center font-bold text-base text-muted-foreground">₦</span>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${platformFee.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">15% of ${totalRevenue.toLocaleString()}</p>
+              <div className="text-2xl font-bold">₦{platformFee.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1">15% of ₦{totalRevenue.toLocaleString()}</p>
             </CardContent>
           </Card>
 
@@ -127,7 +127,7 @@ export default function AdminDashboardPage() {
                           <p className="text-muted-foreground">Reviews</p>
                         </div>
                         <div className="text-center">
-                          <p className="font-semibold">${photographer.hourlyRate}</p>
+                          <p className="font-semibold">₦{photographer.hourlyRate}</p>
                           <p className="text-muted-foreground">Per Hour</p>
                         </div>
                       </div>
@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
-                            <p className="font-semibold">${booking.totalPrice}</p>
+                            <p className="font-semibold">₦{booking.totalPrice}</p>
                             <p className="text-xs text-muted-foreground">{booking.duration}h</p>
                           </div>
                           <div
@@ -354,7 +354,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <DollarSign className="h-5 w-5 text-blue-600" />
+                        <span className="h-5 w-5 flex items-center justify-center font-extrabold text-lg text-blue-600">₦</span>
                       </div>
                       <div>
                         <p className="text-sm font-semibold">Revenue Growth</p>

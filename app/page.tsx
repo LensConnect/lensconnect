@@ -55,11 +55,11 @@ export default function HomePage() {
   }, []);
 
   const categories = [
-    { name: "Editorial", count: "1,234", gradient: "from-zinc-900 to-zinc-800" },
-    { name: "Wedding", count: "892", gradient: "from-stone-900 to-stone-800" },
-    { name: "Commercial", count: "567", gradient: "from-slate-900 to-slate-800" },
-    { name: "Architecture", count: "423", gradient: "from-neutral-900 to-neutral-800" },
-    { name: "Portrait", count: "2,104", gradient: "from-gray-900 to-gray-800" },
+    { name: "Editorial", count: "1,234", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80" },
+    { name: "Wedding", count: "892", image: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80" },
+    { name: "Commercial", count: "567", image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80" },
+    { name: "Architecture", count: "423", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80" },
+    { name: "Portrait", count: "2,104", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80" },
   ];
 
   const processSteps = [
@@ -161,7 +161,7 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* Featured Categories (Using robust gradients instead of images to prevent blank loading states) */}
+      {/* Featured Categories */}
       <section className="py-24 md:py-32 px-4 md:pl-8 lg:pl-16 bg-background overflow-hidden relative border-b border-border/30">
         <motion.div
            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeIn}
@@ -189,13 +189,17 @@ export default function HomePage() {
               key={category.name}
               className="snap-start shrink-0 w-[280px] md:w-[360px] lg:w-[420px]"
             >
-              <Link href={`/search?category=${category.name.toLowerCase()}`} className={`block relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br ${category.gradient} group shadow-xl ring-1 ring-white/10 p-8 flex flex-col justify-end transition-transform hover:-translate-y-2 duration-500`}>
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+              <Link href={`/search?category=${category.name.toLowerCase()}`} className="block relative rounded-3xl overflow-hidden aspect-[3/4] bg-zinc-900 group shadow-xl ring-1 ring-white/10 p-8 flex flex-col justify-end transition-transform hover:-translate-y-2 duration-500">
+                <div 
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" 
+                  style={{ backgroundImage: `url('${category.image}')` }} 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 group-hover:from-black/80 transition-colors duration-500" />
                 <div className="relative z-10">
-                  <p className="text-[10px] font-bold tracking-widest text-white/60 mb-2 uppercase">
+                  <p className="text-[10px] font-bold tracking-widest text-white/80 mb-2 uppercase drop-shadow-md">
                     {category.count} Verified Artists
                   </p>
-                  <h3 className="text-3xl font-black text-white uppercase tracking-tight">{category.name}</h3>
+                  <h3 className="text-3xl font-black text-white uppercase tracking-tight drop-shadow-lg">{category.name}</h3>
                 </div>
                 <div className="absolute top-6 right-6 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
                    <ArrowRight className="w-5 h-5 text-white" />

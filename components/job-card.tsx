@@ -1,7 +1,7 @@
 "use client"
 
 import type { Job } from "@/lib/types"
-import { Calendar, MapPin, Clock, DollarSign, Briefcase } from "lucide-react"
+import { Calendar, MapPin, Clock, Briefcase } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -46,8 +46,8 @@ export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
             <span>{job.durationHours} hours</span>
           </div>
           <div className="flex items-center gap-2 text-primary font-medium">
-            <DollarSign className="h-4 w-4" />
-            <span>${job.budget}</span>
+            <span className="font-extrabold text-base">₦</span>
+            <span>{job.budget}</span>
           </div>
         </div>
       </CardContent>
