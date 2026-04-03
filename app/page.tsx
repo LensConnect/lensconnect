@@ -16,6 +16,7 @@ import {
   Star
 } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 
 const MotionLink = motion(Link);
 
