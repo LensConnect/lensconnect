@@ -29,6 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+
+  const jobPostings = async () =>{
+    
+  }
+
   useEffect(() => {
     // Check current session on mount
     const initializeAuth = async () => {

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { supabase } from "@/lib/supabaseClient"
 import { Separator } from "@/components/ui/separator"
-import { Star, MapPin, DollarSign, Calendar, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
+import { Star, MapPin, Calendar, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -360,7 +360,7 @@ export default function PhotographerProfilePage({ params }: { params: Promise<{ 
               <div className="p-8 lg:p-10 rounded-[2rem] bg-secondary/40 border border-border/50 backdrop-blur-3xl shadow-2xl">
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-4xl font-bold tracking-tight">${profile.hourly_rate || 0}</span>
+                    <span className="text-4xl font-bold tracking-tight">₦{profile.hourly_rate || 0}</span>
                     <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">/ Hour</span>
                   </div>
                   {profile.availability ? (

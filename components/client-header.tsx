@@ -18,6 +18,8 @@ import {
   LogOut,
   LayoutDashboard,
   Shield,
+  PlusSquare,
+  Briefcase,
 } from "lucide-react";
 
 export function Header() {
@@ -61,11 +63,29 @@ export function Header() {
             </Link>
           )}
           {user?.role === "client" && (
+            <>
+              <Link
+                href="/client-dashboard"
+                className="text-sm font-medium hover:text-primary transition-colors"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/client-dashboard/post-job"
+                className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1"
+              >
+                <PlusSquare className="h-4 w-4" />
+                Post a Job
+              </Link>
+            </>
+          )}
+          {user?.role === "photographer" && (
             <Link
-              href="/client-dashboard"
-              className="text-sm font-medium hover:text-primary transition-colors"
+              href="/photographer/find-jobs"
+              className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1"
             >
-              Dashboard
+              <Briefcase className="h-4 w-4" />
+              Find Jobs
             </Link>
           )}
         </nav>

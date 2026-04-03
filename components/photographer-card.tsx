@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Star, MapPin, DollarSign } from "lucide-react"
+import { Star, MapPin } from "lucide-react"
 import type { PhotographerProfile, User } from "@/lib/types"
 
 interface PhotographerCardProps {
@@ -59,7 +59,7 @@ export function PhotographerCard({ photographer }: PhotographerCardProps) {
               <span className="text-sm text-muted-foreground">({photographer.reviewCount})</span>
             </div>
             <div className="flex items-center gap-1 text-sm font-semibold">
-              <DollarSign className="h-4 w-4" />
+              <span className="font-extrabold text-base">₦</span>
               <span>{photographer.hourlyRate}/hr</span>
             </div>
           </div>
