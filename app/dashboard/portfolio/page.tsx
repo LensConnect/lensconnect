@@ -246,7 +246,7 @@ export default function PortfolioPage() {
   // Render
   // ─────────────────────────────────────────────
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-[#0D0D0D]">
+    <div className="w-full min-h-screen overflow-x-hidden">
       <Header />
 
       <div className="mx-auto w-full max-w-[1300px] px-4 py-10">
@@ -386,7 +386,7 @@ export default function PortfolioPage() {
 
         {/* Uploaded Works */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6 text-white">
+          <h2 className="text-2xl font-bold mb-6">
             Your Uploaded Works
           </h2>
 
