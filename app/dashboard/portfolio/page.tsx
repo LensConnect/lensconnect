@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 
 
 interface FormData {
@@ -123,7 +124,7 @@ export default function PortfolioPage() {
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError || !authData.user) {
-      alert("You must be logged in to upload images.");
+      toast.error("You must be logged in to upload images.");
       router.push("/login");
       return;
     }
@@ -141,7 +142,7 @@ export default function PortfolioPage() {
         .upload(fileName, file);
 
       if (uploadError) {
-        alert(`Upload failed: ${uploadError.message}`);
+        toast.error(`Upload failed: ${uploadError.message}`);
         continue;
       }
 
@@ -157,7 +158,7 @@ export default function PortfolioPage() {
     }));
 
     setUploading(false);
-    alert("Image(s) uploaded successfully!");
+    toast.success("Image(s) uploaded successfully!");
   };
 
 
@@ -169,7 +170,7 @@ export default function PortfolioPage() {
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError || !authData.user) {
-      alert("You must be logged in to submit a portfolio.");
+      toast.error("You must be logged in to submit a portfolio.");
       return;
     }
 
@@ -185,9 +186,9 @@ export default function PortfolioPage() {
     ]);
 
     if (error) {
-      alert(`Error saving portfolio: ${error.message}`);
+      toast.error(`Error saving portfolio: ${error.message}`);
     } else {
-      alert("Portfolio uploaded successfully!");
+      toast.success("Portfolio uploaded successfully!");
       fetchPortfolios(); // refresh list
       setFormData({
         image_url: [],

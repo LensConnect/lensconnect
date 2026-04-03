@@ -76,8 +76,8 @@ export default function FindJobsPage() {
     return matchesSearch && matchesCategory
   })
 
-  const handleApply = (jobId: string) => {
-    console.log(`Applying to job ${jobId}`)
+  const handleApply = (jobId: string, message: string, bidAmount: number) => {
+    console.log(`Applying to job ${jobId} with bid ₦${bidAmount} and message: ${message}`)
     // This would open an application modal in a real implementation
   }
 

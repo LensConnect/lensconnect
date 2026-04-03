@@ -69,11 +69,11 @@ export interface Job {
 }
 
 export interface JobApplication {
-  id: string
-  jobId: string
-  photographerId: string
-  message: string
-  bidAmount?: number
-  status: "pending" | "accepted" | "rejected"
-  createdAt: Date
+  id: string;
+  job_id: string;
+  photographer_id: string;
+  message: string;
+  bid_amount?: number;
+  status: "pending" | "accepted" | "rejected";
+  created_at: Date;
 }

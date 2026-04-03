@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { supabase } from "@/lib/supabaseClient"
+import { toast } from "sonner"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Header } from "@/components/header"
@@ -136,11 +137,14 @@ export default function PhotographerSetup() {
 
 
   const handleUpload = async () => {
-    if (!imageFile) return alert("Please select an image first.")
+    if (!imageFile) {
+      toast.error("Please select an image first.")
+      return
+    }
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
-      alert("You must be logged in to upload.")
+      toast.error("You must be logged in to upload.")
       return
     }
 
@@ -154,7 +158,7 @@ export default function PhotographerSetup() {
       .upload(filePath, imageFile)
 
     if (error) {
-      alert("Upload failed: " + error.message)
+      toast.error("Upload failed: " + error.message)
     } else {
       const { data: publicData } = supabase.storage
         .from("profile_image")
@@ -164,7 +168,7 @@ export default function PhotographerSetup() {
         ...prev,
         profile_image_url: publicData.publicUrl,
       }))
-      alert("Image uploaded successfully!")
+      toast.success("Image uploaded successfully!")
     }
 
     setUploading(false)
@@ -179,7 +183,7 @@ export default function PhotographerSetup() {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
-      alert("You must be logged in.")
+      toast.error("You must be logged in.")
       return
     }
 
@@ -204,11 +208,11 @@ export default function PhotographerSetup() {
 
     if (profileError) {
       console.error("Error saving profile:", profileError)
-      alert("Error saving profile: " + profileError.message)
+      toast.error("Error saving profile: " + profileError.message)
       return
     }
 
-    alert("Profile setup completed!")
+    toast.success("Profile setup completed!")
     router.push("/dashboard")
   }
 
