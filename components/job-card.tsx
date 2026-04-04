@@ -53,7 +53,7 @@ export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
 
     const jobTracking = async() =>{
     
-      const {data, error} = await supabase.from("job_applications").select("*").eq("job_id", job.id).eq("photographer_id", user.id).single()
+      const {data, error} = await supabase.from("job_applications").select("*").eq("job_id", job.id).eq("photographer_id", user).single()
       if(data){
         setJobApplication(data)
         hasApplied(true)
@@ -61,7 +61,7 @@ export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
     }
     }
     jobTracking()
-  },[ job.id,user?.id])
+  },[ job.id,user])
 
   const handleConfirmApply = async () => {
     if (!user) {
