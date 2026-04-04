@@ -18,6 +18,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Camera } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 interface FormData {
   fullName: string;
@@ -50,7 +51,6 @@ export default function SignupPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string>("");
   const router = useRouter();
 
   // Handle input change
@@ -91,7 +91,6 @@ export default function SignupPage() {
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsLoading(true);
-    setSuccessMessage("");
 
     try {
       // Sign up user with Supabase
@@ -116,7 +115,7 @@ export default function SignupPage() {
 localStorage.setItem("pendingEmail", formData.email);
      
       // Show confirmation message
-      setSuccessMessage(
+      toast.success(
         "Signup successful! Please check your email to confirm your account."
       );
 
@@ -148,9 +147,11 @@ localStorage.setItem("pendingEmail", formData.email);
         console.group("🧩 Supabase Signup Error");
         console.error("Message:", error.message);
         console.groupEnd();
+        toast.error(error.message);
         setErrors({ email: error.message });
       } else {
         console.error("Signup failed", error);
+        toast.error("Signup failed. Please try again.");
         setErrors({ email: "Signup failed. Please try again." });
       }
     } finally {
@@ -285,11 +286,6 @@ localStorage.setItem("pendingEmail", formData.email);
                   <p className="text-sm text-red-500">{errors.role}</p>
                 )}
               </div>
-
-              {/* Success Message */}
-              {successMessage && (
-                <p className="text-sm text-green-500">{successMessage}</p>
-              )}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating account..." : "Create account"}

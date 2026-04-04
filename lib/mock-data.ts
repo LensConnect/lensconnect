@@ -293,14 +293,3 @@ export const mockJobs: Job[] = [
   },
 ]
 
-export const mockJobApplications: JobApplication[] = [
-  {
-    id: "ja1",
-    jobId: "j1",
-    photographerId: "p1",
-    message: "I'd love to capture your wedding! I have extensive experience with outdoor events in Central Park.",
-    bidAmount: 1000,
-    status: "pending",
-    createdAt: new Date("2025-03-21T11:00:00"),
-  },
-]
