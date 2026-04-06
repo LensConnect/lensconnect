@@ -3,8 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
 
 import {
   DropdownMenu,
@@ -23,8 +22,9 @@ import {
   Shield,
   Search,
   PlusSquare,
+  MessageSquare,
+  Briefcase,
 } from "lucide-react";
-import next from "next";
 import {
   Sheet,
   SheetContent,
@@ -33,8 +33,12 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import { useQuery } from "@tanstack/react-query";
+import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/lib/auth-context'
 
 interface UserProfile {
+id?:string;
   email: string;
   full_name: string;
   profile_image_url: string;
@@ -42,10 +46,18 @@ interface UserProfile {
 }
 
 
+
+
 export function Header() {
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<UserProfile | null>(null);
+  const { user: authUser } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isActiveLink = (href: string) => {
+    return pathname === href || (href !== "/" && pathname.startsWith(href));
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -80,6 +92,7 @@ export function Header() {
 
       if (profileData) {
         setUser({
+          id: authUser?.id,
           email: profileData.email,
           full_name: profileData.full_name,
           profile_image_url: profileData.profile_image_url,
@@ -95,7 +108,30 @@ export function Header() {
 
   useEffect(() => {
     fetchProfileImage();
-  }, []);
+  }, [authUser?.id]);
+
+  const {data: applicationCount} = useQuery({
+    queryKey: ['applications-count', user?.id],
+    queryFn: async () => {
+      if(!user?.id || user?.role !== "photographer") return 0;
+      const {count, error} = await supabase.from('job_applications').select('*', {count: 'exact', head: true}).eq('photographer_id', user?.id)
+      if(error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id && user?.role === 'photographer',
+  })
+
+  const {data: messagesCount} = useQuery({
+    queryKey:['messages-count', user?.id],
+    queryFn: async() =>{
+      if(!user?.id) return 0;
+      const {count, error} = await supabase.from('messages').select('*', {count: 'exact', head: true}).eq('receiver_id', user?.id).eq('is_read', false)
+      if(error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000,
+  })
 
 
   const navLinks = [
@@ -106,6 +142,8 @@ export function Header() {
     { href: "/dashboard/client", label: "Dashboard", roles: ["client"], icon: LayoutDashboard },
     { href: "/dashboard", label: "Dashboard", roles: ["photographer"], icon: LayoutDashboard },
     { href: "/admin", label: "Admin", roles: ["admin"], icon: Shield },
+    {href:'/applications', label:'Applications', roles:["photographer"], icon:Briefcase},
+    {href:"/messages", label:"Messages", roles:["client", "photographer"], icon:MessageSquare}
   ];
 
   const currentRole = user?.role || "guest";
@@ -119,16 +157,31 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-2">
           {navLinks.map((link) => {
             if (!link.roles.includes(currentRole)) return null;
+            const active = isActiveLink(link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium hover:text-primary transition-colors"
+                className={`text-sm font-medium transition-colors px-3 py-2 rounded-md relative flex items-center gap-1.5 ${
+                  active 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-foreground/70 hover:bg-muted hover:text-foreground"
+                }`}
               >
                 {link.label}
+                {link.href === '/applications' && applicationCount != null && applicationCount > 0 && (
+                  <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                    {applicationCount}
+                  </Badge>
+                )}
+                {link.href === '/messages' && messagesCount != null && messagesCount > 0 && (
+                  <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                    {messagesCount}
+                  </Badge>
+                )}
               </Link>
             )
           })}
@@ -171,6 +224,14 @@ export function Header() {
                 {user.role === "photographer" && (
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {user.role === "client" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/client" className="cursor-pointer">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
                     </Link>
@@ -221,14 +282,24 @@ export function Header() {
               <div className="flex flex-col gap-4 mt-6">
                 {navLinks.map((link) => {
                   if (!link.roles.includes(currentRole)) return null;
+                  const active = isActiveLink(link.href);
                   return (
                     <SheetClose asChild key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-base p-4 font-medium hover:text-primary transition-colors flex items-center gap-2"
+                        className={`text-base p-3 font-medium transition-colors flex items-center gap-3 rounded-lg ${
+                          active
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-muted text-foreground/80 hover:text-foreground"
+                        }`}
                       >
-                        <link.icon className="h-4 w-4" />
+                        <link.icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
                         {link.label}
+                        {link.href === '/applications' && applicationCount != null && applicationCount > 0 && (
+                          <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                            {applicationCount}
+                          </Badge>
+                        )} 
                       </Link>
                     </SheetClose>
                   );

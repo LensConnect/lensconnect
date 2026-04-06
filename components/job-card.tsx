@@ -14,6 +14,7 @@ import { useMutation } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
+import { useQuery } from "@tanstack/react-query"
 
 interface JobCardProps {
   job: Job
@@ -48,12 +49,29 @@ export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
     setOpenModal(true)
   }
 
+  const {data: appliedJob,isLoading} = useQuery({
+    queryKey: ["job-application", job.id, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("job_applications").select("*").eq("job_id", job.id).eq("photographer_id", user?.id).single()
+      
+      if (error) throw error
+      if(data){
+        setJobApplication(data)
+        hasApplied(true)
+      }
+      return data
 
-  useEffect(()=>{
+      
+    },
+  })
+
+
+  /* useEffect(()=>{
 
     const jobTracking = async() =>{
-    
-      const {data, error} = await supabase.from("job_applications").select("*").eq("job_id", job.id).eq("photographer_id", user).single()
+      if (!user?.id) return
+      
+      const {data, error} = await supabase.from("job_applications").select("*").eq("job_id", job.id).eq("photographer_id", user.id).single()
       if(data){
         setJobApplication(data)
         hasApplied(true)
@@ -61,7 +79,7 @@ export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
     }
     }
     jobTracking()
-  },[ job.id,user])
+  },[ job.id,user?.id]) */
 
   const handleConfirmApply = async () => {
     if (!user) {
@@ -78,10 +96,16 @@ export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
     
     if (error) {
       console.log(error)
-      toast.error("Failed to send application!")
+      if (error.code === '23505') {
+        toast.error("You have already applied for this job.")
+        hasApplied(true)
+      } else {
+        toast.error("Failed to send application!")
+      }
     } else {
       console.log(data)
       toast.success("Application sent successfully!")
+      hasApplied(true)
       setOpenModal(false)
     }
   }
@@ -131,7 +155,7 @@ export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
           <Button 
             className="w-full" 
             onClick={handleOpenModal}
-            disabled={job.status !== "open"}
+            disabled={job.status !== "open" || applied}
           >
             <Briefcase className={`mr-2 h-4 w-4 ${applied ? "text-green-500" : "text-white"}`} />
             {applied ? "Applied" : "Apply Now"}
