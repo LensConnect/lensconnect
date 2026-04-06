@@ -10,8 +10,8 @@ function MessagesContent() {
   const recipientId = searchParams.get("to");
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl h-[calc(100vh-100px)]">
-      <h1 className="text-2xl font-bold mb-6">Messages</h1>
+    <div className="container mx-auto px-2 md:px-4 py-4 md:py-8 max-w-6xl h-[calc(100vh-64px)]">
+      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 px-2 md:px-0">Messages</h1>
       <ChatInterface initialRecipientId={recipientId} />
     </div>
   );
