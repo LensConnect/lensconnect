@@ -33,8 +33,12 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import { useQuery } from "@tanstack/react-query";
+import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/lib/auth-context'
 
 interface UserProfile {
+id?:string;
   email: string;
   full_name: string;
   profile_image_url: string;
@@ -42,9 +46,12 @@ interface UserProfile {
 }
 
 
+
+
 export function Header() {
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<UserProfile | null>(null);
+  const { user: authUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -85,6 +92,7 @@ export function Header() {
 
       if (profileData) {
         setUser({
+          id: authUser?.id,
           email: profileData.email,
           full_name: profileData.full_name,
           profile_image_url: profileData.profile_image_url,
@@ -100,7 +108,30 @@ export function Header() {
 
   useEffect(() => {
     fetchProfileImage();
-  }, []);
+  }, [authUser?.id]);
+
+  const {data: applicationCount} = useQuery({
+    queryKey: ['applications-count', user?.id],
+    queryFn: async () => {
+      if(!user?.id || user?.role !== "photographer") return 0;
+      const {count, error} = await supabase.from('job_applications').select('*', {count: 'exact', head: true}).eq('photographer_id', user?.id)
+      if(error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id && user?.role === 'photographer',
+  })
+
+  const {data: messagesCount} = useQuery({
+    queryKey:['messages-count', user?.id],
+    queryFn: async() =>{
+      if(!user?.id) return 0;
+      const {count, error} = await supabase.from('messages').select('*', {count: 'exact', head: true}).eq('receiver_id', user?.id).eq('is_read', false)
+      if(error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000,
+  })
 
 
   const navLinks = [
@@ -134,13 +165,23 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium transition-colors px-3 py-2 rounded-md ${
+                className={`text-sm font-medium transition-colors px-3 py-2 rounded-md relative flex items-center gap-1.5 ${
                   active 
                     ? "bg-primary/10 text-primary" 
                     : "text-foreground/70 hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {link.label}
+                {link.href === '/applications' && applicationCount != null && applicationCount > 0 && (
+                  <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                    {applicationCount}
+                  </Badge>
+                )}
+                {link.href === '/messages' && messagesCount != null && messagesCount > 0 && (
+                  <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                    {messagesCount}
+                  </Badge>
+                )}
               </Link>
             )
           })}
@@ -254,6 +295,11 @@ export function Header() {
                       >
                         <link.icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
                         {link.label}
+                        {link.href === '/applications' && applicationCount != null && applicationCount > 0 && (
+                          <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                            {applicationCount}
+                          </Badge>
+                        )} 
                       </Link>
                     </SheetClose>
                   );
