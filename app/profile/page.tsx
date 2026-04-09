@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 interface ProfileData {
     id: string;
@@ -59,7 +60,6 @@ const AVAILABLE_SPECIALTIES = [
 
 export default function ProfilePage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
 
@@ -70,49 +70,43 @@ export default function ProfilePage() {
     // Image Upload Ref
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        async function fetchProfileData() {
-            try {
-                const { data: { user }, error: userError } = await supabase.auth.getUser();
-                if (userError || !user) {
-                    router.push("/login");
-                    return;
-                }
-
-                const { data: profileData, error: profileError } = await supabase
-                    .from("profiles")
-                    .select("*")
-                    .eq('id', user.id)
-                    .single();
-
-                if (profileError) {
-                    console.error("Error fetching profile:", profileError);
-                } else {
-                    setProfile({
-                        ...profileData,
-                        id: user.id
-                    });
-                }
-
-                // Fetch Portfolio if photographer
-                if (profileData?.role === "photographer") {
-                    const { data: portfolioData } = await supabase
-                        .from("photographer_portfolio")
-                        .select("*")
-                        .eq("photographer_id", user.id);
-
-                    if (portfolioData) setPortfolio(portfolioData);
-                }
-
-            } catch (err) {
-                console.error("Error fetching data:", err);
-            } finally {
-                setLoading(false);
+    const { isLoading, error: profileError } = useQuery({
+        queryKey: ['profile'],
+        queryFn: async () => {
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                router.push("/login");
+                return null;
             }
-        }
 
-        fetchProfileData();
-    }, [router]);
+            // Fetch profile
+            const { data: profileFetch, error: fetchError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            let portfolioFetch: PortfolioItem[] = [];
+            if (profileFetch?.role === "photographer") {
+                const { data: portfolioData, error: portfolioError } = await supabase
+                    .from("photographer_portfolio")
+                    .select("*")
+                    .eq("photographer_id", user.id);
+                
+                if (portfolioError) console.error("Error fetching portfolio:", portfolioError);
+                portfolioFetch = portfolioData || [];
+            }
+
+            // Set local state for editing
+            setProfile({ ...profileFetch, id: user.id });
+            setPortfolio(portfolioFetch);
+
+            return { profile: profileFetch, portfolio: portfolioFetch };
+        },
+        staleTime: Infinity, // Only fetch once per mount unless invalidated
+    });
 
     // Handle Input Changes
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -185,7 +179,7 @@ export default function ProfilePage() {
         }
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -278,7 +272,7 @@ export default function ProfilePage() {
                                 </Button>
                                 {profile?.role === "photographer" && (
                                     <Button variant="outline" size="lg" className="rounded-xl px-8 bg-transparent" asChild>
-                                        <Link href={`/photographer/${profile.id}`}>
+                                        <Link href={`/photographer/${profile.full_name}/${profile.id}`}>
                                             <ExternalLink className="h-4 w-4 mr-2" /> View Public Profile
                                         </Link>
                                     </Button>

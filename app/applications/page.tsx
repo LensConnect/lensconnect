@@ -8,6 +8,8 @@ import { Calendar, MapPin, Clock, Briefcase, CheckCircle2, XCircle, Loader2 } fr
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from '@/lib/auth-context'
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Job } from '@/lib/types'
 
 interface JobApplicationWithJob {
@@ -40,6 +42,28 @@ const ApplicationsPage = () => {
         },
         enabled: !!user?.id
     })
+
+    const queryClient = useQueryClient()
+
+    useEffect(() => {
+        const markAsRead = async () => {
+            if (!user?.id) return
+            
+            const { error } = await supabase
+                .from('job_applications')
+                .update({ is_read: true })
+                .eq('photographer_id', user.id)
+                .eq('is_read', false)
+            
+            if (!error) {
+                queryClient.invalidateQueries({ queryKey: ['applications-count', user.id] })
+            }
+        }
+
+        if (applications && applications.length > 0) {
+            markAsRead()
+        }
+    }, [applications, user?.id, queryClient])
 
     const getStatusStyle = (status: string) => {
       switch (status) {

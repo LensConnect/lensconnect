@@ -11,6 +11,7 @@ import { Send, User, Search, Phone, Video, MoreVertical, Paperclip, Check, Check
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Message = {
   id: string;
@@ -33,6 +34,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [conversations, setConversations] = useState<Profile[]>([]);
   const [activeRecipient, setActiveRecipient] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -138,7 +140,30 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
       else setMessages(data || []);
     };
 
+    // Mark unread messages from this sender as read
+    const markAsRead = async () => {
+      if (!user?.id || !activeRecipient?.id) return;
+      
+      console.log('[ChatInterface] Marking messages as read for receiver:', user.id, 'from sender:', activeRecipient.id);
+      
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('receiver_id', user.id)
+        .eq('sender_id', activeRecipient.id)
+        .eq('is_read', false);
+
+      if (!error) {
+        console.log('[ChatInterface] Successfully marked as read. Invalidating queries...');
+        // Broad invalidation: Refreshes ANY query starting with 'messages-count'
+        queryClient.invalidateQueries({ queryKey: ['messages-count'] });
+      } else {
+        console.error("[ChatInterface] Error marking messages as read:", error);
+      }
+    };
+
     fetchMessages();
+    markAsRead();
 
     const channel = supabase
       .channel("chat_room")
@@ -154,6 +179,8 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
           const newMsg = payload.new as Message;
           if (newMsg.sender_id === activeRecipient.id) {
             setMessages((prev) => [...prev, newMsg]);
+            // Mark the incoming message as read since chat is open
+            markAsRead();
           }
         }
       )
@@ -203,6 +230,8 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
     c.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
+ 
   return (
     <div className="flex h-[calc(100vh-180px)] md:h-[700px] w-full border rounded-xl overflow-hidden bg-background shadow-lg">
       {/* Sidebar - visible on md+, or on mobile when chat is not active */}

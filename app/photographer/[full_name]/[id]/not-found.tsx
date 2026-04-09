@@ -11,7 +11,7 @@ export default function NotFound() {
           <h1 className="text-4xl font-bold">Photographer Not Found</h1>
           <p className="text-muted-foreground">The photographer you&apos;re looking for doesn&apos;t exist.</p>
           <Button asChild>
-            <Link href="/search">Browse Photographers</Link>
+            <Link href="/photographers">Browse Photographers</Link>
           </Button>
         </div>
       </div>

@@ -34,8 +34,10 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/lib/auth-context'
+
 
 interface UserProfile {
 id?:string;
@@ -66,7 +68,10 @@ export function Header() {
     router.push("/login");
   };
 
-  const fetchProfileImage = async () => {
+
+
+
+ /*  const fetchProfileImage = async () => {
     try {
       const {
         data: { user: authUser },
@@ -76,12 +81,21 @@ export function Header() {
       if (userError || !authUser) {
         return;
       }
-
+      
+      const {data:profileData, error:profileError} = useQuery({
+        queryKey:['profile', authUser.id],
+        queryFn: async() => {
+          const {data, error} = await supabase.from('profiles').select('profile_image_url, email, full_name, role').eq('id', authUser.id).single()
+          if(error) throw error;
+          return data;
+        },
+        enabled: !!authUser.id,
+      })
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("profile_image_url, email, full_name, role")
         .eq("id", authUser.id)
-        .single();
+        .single(); 
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
@@ -104,35 +118,101 @@ export function Header() {
     } finally {
       setLoading(false);
     }
-  };
+  }; */
 
-  useEffect(() => {
+
+  const {data:profileData, error:profileError} = useQuery({
+    queryKey:['profile', authUser?.id],
+    queryFn: async() => {
+      const {data, error} = await supabase.from('profiles').select('profile_image_url, email, full_name, role').eq('id', authUser?.id).single()
+      if(error) throw error;
+      if(profileData){
+        setUser({
+          id: authUser?.id,
+          email: profileData.email,
+          full_name: profileData.full_name,
+          profile_image_url: profileData.profile_image_url,
+          role: profileData.role,
+        });
+      }
+      return data;
+      
+    },
+    enabled: !!authUser?.id,
+  })
+
+  /* useEffect(() => {
     fetchProfileImage();
-  }, [authUser?.id]);
+  }, [authUser?.id]); */
+
+  const queryClient = useQueryClient();
 
   const {data: applicationCount} = useQuery({
-    queryKey: ['applications-count', user?.id],
+    queryKey: ['applications-count', authUser?.id],
     queryFn: async () => {
-      if(!user?.id || user?.role !== "photographer") return 0;
-      const {count, error} = await supabase.from('job_applications').select('*', {count: 'exact', head: true}).eq('photographer_id', user?.id)
+      if(!authUser?.id || user?.role !== "photographer") return 0;
+      const {count, error} = await supabase
+        .from('job_applications')
+        .select('*', {count: 'exact', head: true})
+        .eq('photographer_id', authUser?.id)
+        .eq('is_read', false)
       if(error) throw error;
       return count || 0;
     },
-    enabled: !!user?.id && user?.role === 'photographer',
+    enabled: !!authUser?.id && user?.role === 'photographer',
   })
 
   const {data: messagesCount} = useQuery({
-    queryKey:['messages-count', user?.id],
+    queryKey:['messages-count', authUser?.id],
     queryFn: async() =>{
-      if(!user?.id) return 0;
-      const {count, error} = await supabase.from('messages').select('*', {count: 'exact', head: true}).eq('receiver_id', user?.id).eq('is_read', false)
+      if(!authUser?.id) return 0;
+      console.log('[Header] Fetching unread count for:', authUser.id);
+      const {count, error} = await supabase.from('messages').select('*', {count: 'exact', head: true}).eq('receiver_id', authUser?.id).eq('is_read', false)
       if(error) throw error;
+      console.log('[Header] Unread count result:', count);
       return count || 0;
     },
-    enabled: !!user?.id,
+    enabled: !!authUser?.id,
     refetchInterval: 30000,
+    staleTime: 0,
   })
 
+  // Real-time subscriptions for immediate badge updates
+  useEffect(() => {
+    if (!authUser?.id) return;
+
+    const channel = supabase
+      .channel('header-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${authUser.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['messages-count', authUser.id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'job_applications',
+          filter: `photographer_id=eq.${authUser.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['applications-count', authUser.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authUser?.id, queryClient]);
 
   const navLinks = [
     { href: "/photographers", label: "Find Photographers", roles: ["client", "photographer", ], icon: Search },
@@ -299,7 +379,12 @@ export function Header() {
                           <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
                             {applicationCount}
                           </Badge>
-                        )} 
+                        )}
+                        {link.href === '/messages' && messagesCount != null && messagesCount > 0 && (
+                          <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                            {messagesCount}
+                          </Badge>
+                        )}
                       </Link>
                     </SheetClose>
                   );
