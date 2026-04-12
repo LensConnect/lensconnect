@@ -51,8 +51,6 @@ id?:string;
 
 
 export function Header() {
-  const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<UserProfile | null>(null);
   const { user: authUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -63,7 +61,7 @@ export function Header() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
+    queryClient.clear();
     router.refresh();
     router.push("/login");
   };
@@ -71,96 +69,39 @@ export function Header() {
 
 
 
- /*  const fetchProfileImage = async () => {
-    try {
-      const {
-        data: { user: authUser },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !authUser) {
-        return;
-      }
-      
-      const {data:profileData, error:profileError} = useQuery({
-        queryKey:['profile', authUser.id],
-        queryFn: async() => {
-          const {data, error} = await supabase.from('profiles').select('profile_image_url, email, full_name, role').eq('id', authUser.id).single()
-          if(error) throw error;
-          return data;
-        },
-        enabled: !!authUser.id,
-      })
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("profile_image_url, email, full_name, role")
-        .eq("id", authUser.id)
-        .single(); 
-
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-        return;
-      }
-
-      console.log("Fetched profile data:", profileData);
-
-      if (profileData) {
-        setUser({
-          id: authUser?.id,
-          email: profileData.email,
-          full_name: profileData.full_name,
-          profile_image_url: profileData.profile_image_url,
-          role: profileData.role,
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }; */
-
-
-  const {data:profileData, error:profileError} = useQuery({
-    queryKey:['profile', authUser?.id],
-    queryFn: async() => {
-      const {data, error} = await supabase.from('profiles').select('profile_image_url, email, full_name, role').eq('id', authUser?.id).single()
-      if(error) throw error;
-      if(profileData){
-        setUser({
-          id: authUser?.id,
-          email: profileData.email,
-          full_name: profileData.full_name,
-          profile_image_url: profileData.profile_image_url,
-          role: profileData.role,
-        });
-      }
+  const { data: profileData } = useQuery({
+    queryKey: ['profile', authUser?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('profile_image_url, email, full_name, role')
+        .eq('id', authUser?.id)
+        .single();
+      if (error) throw error;
       return data;
-      
     },
     enabled: !!authUser?.id,
-  })
-
-  /* useEffect(() => {
-    fetchProfileImage();
-  }, [authUser?.id]); */
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
 
   const queryClient = useQueryClient();
 
-  const {data: applicationCount} = useQuery({
+  const currentRole = profileData?.role || authUser?.role || "guest";
+
+  const { data: applicationCount } = useQuery({
     queryKey: ['applications-count', authUser?.id],
     queryFn: async () => {
-      if(!authUser?.id || user?.role !== "photographer") return 0;
-      const {count, error} = await supabase
+      if (!authUser?.id) return 0;
+      const { count, error } = await supabase
         .from('job_applications')
-        .select('*', {count: 'exact', head: true})
+        .select('*', { count: 'exact', head: true })
         .eq('photographer_id', authUser?.id)
-        .eq('is_read', false)
-      if(error) throw error;
+        .eq('is_read', false);
+      if (error) throw error;
       return count || 0;
     },
-    enabled: !!authUser?.id && user?.role === 'photographer',
-  })
+    enabled: !!authUser?.id && currentRole === 'photographer',
+  });
 
   const {data: messagesCount} = useQuery({
     queryKey:['messages-count', authUser?.id],
@@ -220,13 +161,14 @@ export function Header() {
     { href: "/dashboard/client/post-job", label: "Post a Job", roles: ["client"], icon: PlusSquare },
     { href: "/how-it-works", label: "How It Works", roles: ["client", "photographer"], icon: Camera }, // Placeholder icon
     { href: "/dashboard/client", label: "Dashboard", roles: ["client"], icon: LayoutDashboard },
+    {href:"/dashboard/client/jobs", label:"Jobs", roles:["client"], icon:Briefcase},
     { href: "/dashboard", label: "Dashboard", roles: ["photographer"], icon: LayoutDashboard },
     { href: "/admin", label: "Admin", roles: ["admin"], icon: Shield },
     {href:'/applications', label:'Applications', roles:["photographer"], icon:Briefcase},
     {href:"/messages", label:"Messages", roles:["client", "photographer"], icon:MessageSquare}
   ];
 
-  const currentRole = user?.role || "guest";
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -268,7 +210,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {user ? (
+          {profileData ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -277,10 +219,10 @@ export function Header() {
                 >
                   <Avatar className="h-9 w-9">
                     <AvatarImage
-                      src={user.profile_image_url || "/placeholder.svg"}
-                      alt={user.full_name}
+                      src={profileData.profile_image_url || "/placeholder.svg"}
+                      alt={profileData.full_name}
                     />
-                    <AvatarFallback>{user.full_name?.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{profileData.full_name?.charAt(0)}</AvatarFallback>
                   </Avatar>
 
                 </Button>
@@ -288,9 +230,9 @@ export function Header() {
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user.full_name}</p>
+                    <p className="text-sm font-medium">{profileData.full_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {user.email}
+                      {profileData.email}
                     </p>
                   </div>
                 </div>
@@ -301,7 +243,7 @@ export function Header() {
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                {user.role === "photographer" && (
+                {profileData.role === "photographer" && (
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -309,7 +251,7 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                {user.role === "client" && (
+                {profileData.role === "client" && (
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/client" className="cursor-pointer">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -317,7 +259,7 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                {user.role === "admin" && (
+                {profileData.role === "admin" && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin" className="cursor-pointer">
                       <Shield className="mr-2 h-4 w-4" />
@@ -389,7 +331,7 @@ export function Header() {
                     </SheetClose>
                   );
                 })}
-                {!user && (
+                {!profileData && (
                   <>
                     <div className="h-px bg-border my-2" />
                     <SheetClose asChild>
