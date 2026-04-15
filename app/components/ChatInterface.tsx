@@ -257,7 +257,7 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
           </div>
         </div>
 
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto">
           <div className="flex flex-col p-2 space-y-1">
             {filteredConversations.map((profile) => {
               const isOnline = onlineUsers.has(profile.id);
@@ -307,18 +307,18 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Main Chat Area - visible on md+, or on mobile when chat is active */}
       <div className={cn(
-        "flex-1 flex flex-col bg-background/50 backdrop-blur-sm",
+        "flex-1 flex flex-col bg-background/50 backdrop-blur-sm min-w-0 min-h-0",
         showMobileChat ? "flex" : "hidden md:flex"
       )}>
         {activeRecipient ? (
           <>
             {/* Header */}
-            <div className="h-14 md:h-16 px-3 md:px-4 border-b flex items-center justify-between bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="h-14 md:h-16 px-3 md:px-4 border-b flex items-center justify-between bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 shrink-0">
               <div className="flex items-center gap-2 md:gap-3">
                 {/* Back button - mobile only */}
                 <Button
@@ -361,7 +361,7 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-3 md:p-6 bg-muted/5">
+            <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-muted/5">
               <div className="flex flex-col gap-4 max-w-3xl mx-auto">
                 {/* Date separator example */}
                 <div className="flex items-center gap-4 py-4">
@@ -413,10 +413,10 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
                 })}
                 <div ref={scrollRef} />
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Input */}
-            <div className="p-2 md:p-4 border-t bg-background">
+            <div className="p-2 md:p-4 border-t bg-background shrink-0">
               <form onSubmit={sendMessage} className="max-w-3xl mx-auto relative flex items-center gap-1 md:gap-2">
                 <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0 h-9 w-9 md:h-10 md:w-10">
                   <Paperclip className="h-5 w-5" />
