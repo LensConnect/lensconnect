@@ -48,9 +48,13 @@ const { data: applications, isLoading: isLoadingApps } = useQuery({
       .select(`
         *,
         profiles:photographer_id (
+          id,
           full_name,
           profile_image_url,
-          location
+          location,
+          bio,
+          hourly_rate,
+          specialties
         ),
         photographer_rating_summary (
           rating,
@@ -172,11 +176,16 @@ const { data: applications, isLoading: isLoadingApps } = useQuery({
                     status: app.status,
                     created_at: app.created_at,
                     photographer: {
+                      id: app.profiles?.id,
+                      full_name: app.profiles?.full_name || "Unknown Photographer",
                       name: app.profiles?.full_name || "Unknown Photographer",
                       avatar: app.profiles?.profile_image_url,
                       location: app.profiles?.location,
-                      rating: app.profiles?.rating || 5.0,
-                      review_count: app.profiles?.review_count || 0
+                      bio: app.profiles?.bio || "",
+                      hourly_rate: app.profiles?.hourly_rate || 0,
+                      specialties: app.profiles?.specialties || [],
+                      rating: app.photographer_rating_summary?.rating || 5.0,
+                      review_count: app.photographer_rating_summary?.review_count || 0
                     }
                   }} 
                 />

@@ -241,6 +241,7 @@ export function Header() {
                   <Link href="/profile" className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
                     Profile
+                    
                   </Link>
                 </DropdownMenuItem>
                 {profileData.role === "photographer" && (
