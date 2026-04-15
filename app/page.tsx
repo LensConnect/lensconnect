@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/header";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
@@ -477,7 +478,13 @@ export default function HomePage() {
       <footer className="border-t border-border/40 py-16 px-6 bg-background">
         <div className="container mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
-            <Camera className="h-6 w-6 text-foreground" />
+            <Image 
+              src="/logo.png" 
+              alt="LensConnect Logo" 
+              width={24} 
+              height={24} 
+              className="h-6 w-6 object-contain"
+            />
             <span className="text-xl font-black tracking-tight uppercase">LensConnect</span>
           </div>
           <div className="flex gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">

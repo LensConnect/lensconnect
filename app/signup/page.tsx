@@ -4,6 +4,7 @@ import type React from "react";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,7 +165,13 @@ localStorage.setItem("pendingEmail", formData.email);
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <Camera className="h-8 w-8 text-primary" />
+            <Image 
+              src="/logo.png" 
+              alt="LensConnect Logo" 
+              width={32} 
+              height={32} 
+              className="h-8 w-8 object-contain"
+            />
             <span className="text-2xl font-semibold">LensConnect</span>
           </Link>
           <h1 className="text-3xl font-bold">Create your account</h1>
