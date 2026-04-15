@@ -7,10 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, User, Search, Phone, Video, MoreVertical, Paperclip, Check, CheckCheck, Smile, Image as ImageIcon } from "lucide-react";
+import { Send, User, Search, Phone, Video, MoreVertical, Paperclip, Check, CheckCheck, Smile, Image as ImageIcon, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Message = {
   id: string;
@@ -33,12 +34,14 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [conversations, setConversations] = useState<Profile[]>([]);
   const [activeRecipient, setActiveRecipient] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 1. Fetch recent conversations
@@ -137,7 +140,30 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
       else setMessages(data || []);
     };
 
+    // Mark unread messages from this sender as read
+    const markAsRead = async () => {
+      if (!user?.id || !activeRecipient?.id) return;
+      
+      console.log('[ChatInterface] Marking messages as read for receiver:', user.id, 'from sender:', activeRecipient.id);
+      
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('receiver_id', user.id)
+        .eq('sender_id', activeRecipient.id)
+        .eq('is_read', false);
+
+      if (!error) {
+        console.log('[ChatInterface] Successfully marked as read. Invalidating queries...');
+        // Broad invalidation: Refreshes ANY query starting with 'messages-count'
+        queryClient.invalidateQueries({ queryKey: ['messages-count'] });
+      } else {
+        console.error("[ChatInterface] Error marking messages as read:", error);
+      }
+    };
+
     fetchMessages();
+    markAsRead();
 
     const channel = supabase
       .channel("chat_room")
@@ -153,6 +179,8 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
           const newMsg = payload.new as Message;
           if (newMsg.sender_id === activeRecipient.id) {
             setMessages((prev) => [...prev, newMsg]);
+            // Mark the incoming message as read since chat is open
+            markAsRead();
           }
         }
       )
@@ -202,10 +230,15 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
     c.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
+ 
   return (
-    <div className="flex h-[700px] w-full border rounded-xl overflow-hidden bg-background shadow-lg">
-      {/* Sidebar */}
-      <div className="w-80 border-r bg-muted/5 flex flex-col md:flex hidden sm:flex"> {/* Hide on very small screens if needed, but keeping simple for now */}
+    <div className="flex h-[calc(100vh-180px)] md:h-[700px] w-full border rounded-xl overflow-hidden bg-background shadow-lg">
+      {/* Sidebar - visible on md+, or on mobile when chat is not active */}
+      <div className={cn(
+        "w-full md:w-80 border-r bg-muted/5 flex flex-col",
+        showMobileChat ? "hidden md:flex" : "flex"
+      )}>
         <div className="p-4 border-b space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-lg">Messages</h2>
@@ -231,7 +264,10 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
               return (
                 <button
                   key={profile.id}
-                  onClick={() => setActiveRecipient(profile)}
+                  onClick={() => {
+                    setActiveRecipient(profile);
+                    setShowMobileChat(true);
+                  }}
                   className={cn(
                     "flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:bg-muted group relative",
                     activeRecipient?.id === profile.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
@@ -274,15 +310,28 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
         </ScrollArea>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-background/50 backdrop-blur-sm">
+      {/* Main Chat Area - visible on md+, or on mobile when chat is active */}
+      <div className={cn(
+        "flex-1 flex flex-col bg-background/50 backdrop-blur-sm",
+        showMobileChat ? "flex" : "hidden md:flex"
+      )}>
         {activeRecipient ? (
           <>
             {/* Header */}
-            <div className="h-16 px-4 border-b flex items-center justify-between bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex items-center gap-3">
+            <div className="h-14 md:h-16 px-3 md:px-4 border-b flex items-center justify-between bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="flex items-center gap-2 md:gap-3">
+                {/* Back button - mobile only */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden h-8 w-8 shrink-0"
+                  onClick={() => setShowMobileChat(false)}
+                  aria-label="Back to conversations"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
                 <div className="relative">
-                  <Avatar className="h-10 w-10 border border-border">
+                  <Avatar className="h-8 w-8 md:h-10 md:w-10 border border-border">
                     <AvatarImage src={activeRecipient.profile_image_url} />
                     <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
                   </Avatar>
@@ -298,21 +347,21 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                  <Phone className="h-5 w-5" />
+              <div className="flex items-center gap-0 md:gap-1">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary h-8 w-8 md:h-9 md:w-9">
+                  <Phone className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                  <Video className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary h-8 w-8 md:h-9 md:w-9">
+                  <Video className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                  <MoreVertical className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary h-8 w-8 md:h-9 md:w-9">
+                  <MoreVertical className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
               </div>
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4 md:p-6 bg-muted/5">
+            <ScrollArea className="flex-1 p-3 md:p-6 bg-muted/5">
               <div className="flex flex-col gap-4 max-w-3xl mx-auto">
                 {/* Date separator example */}
                 <div className="flex items-center gap-4 py-4">
@@ -334,7 +383,7 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
                       )}
                     >
                       <div className={cn(
-                        "flex max-w-[75%] flex-col gap-1",
+                        "flex max-w-[85%] md:max-w-[75%] flex-col gap-1",
                         isMe ? "items-end" : "items-start"
                       )}>
                         <div className={cn(
@@ -367,9 +416,9 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
             </ScrollArea>
 
             {/* Input */}
-            <div className="p-4 border-t bg-background">
-              <form onSubmit={sendMessage} className="max-w-3xl mx-auto relative flex items-center gap-2">
-                <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0">
+            <div className="p-2 md:p-4 border-t bg-background">
+              <form onSubmit={sendMessage} className="max-w-3xl mx-auto relative flex items-center gap-1 md:gap-2">
+                <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0 h-9 w-9 md:h-10 md:w-10">
                   <Paperclip className="h-5 w-5" />
                 </Button>
                 <div className="relative flex-1">
@@ -377,7 +426,7 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
-                    className="pr-12 py-6 rounded-full bg-muted/50 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
+                    className="pr-12 py-5 md:py-6 rounded-full bg-muted/50 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 text-sm"
                   />
                   <Button
                     type="button"
@@ -393,7 +442,7 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
                   size="icon"
                   disabled={!newMessage.trim()}
                   className={cn(
-                    "h-12 w-12 rounded-full shrink-0 transition-transform active:scale-95",
+                    "h-10 w-10 md:h-12 md:w-12 rounded-full shrink-0 transition-transform active:scale-95",
                     !newMessage.trim() ? "opacity-50" : "shadow-md hover:shadow-lg"
                   )}
                 >
@@ -404,13 +453,13 @@ export function ChatInterface({ initialRecipientId }: ChatInterfaceProps) {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-4 bg-muted/5 text-center p-8">
-            <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center">
-              <User className="h-10 w-10 text-primary/20" />
+            <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-primary/5 flex items-center justify-center">
+              <User className="h-8 w-8 md:h-10 md:w-10 text-primary/20" />
             </div>
             <div className="space-y-1">
-              <h3 className="font-semibold text-lg">Your Messages</h3>
+              <h3 className="font-semibold text-base md:text-lg">Your Messages</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                Select a conversation from the sidebar to start chatting or send a new message.
+                Select a conversation to start chatting.
               </p>
             </div>
           </div>

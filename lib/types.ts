@@ -75,5 +75,6 @@ export interface JobApplication {
   message: string;
   bid_amount?: number;
   status: "pending" | "accepted" | "rejected";
+  is_read: boolean;
   created_at: Date;
 }

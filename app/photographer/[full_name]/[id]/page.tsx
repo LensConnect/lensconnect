@@ -74,7 +74,7 @@ interface Review {
   };
 }
 
-export default function PhotographerProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export default function PhotographerProfilePage({ params }: { params: Promise<{ full_name: string, id: string }> }) {
   const { id } = use(params)
 
   const [formErrors, setFormErrors] = useState<formErrors>({})
@@ -471,6 +471,7 @@ export default function PhotographerProfilePage({ params }: { params: Promise<{ 
 
               <div className="space-y-2.5">
                 <Label htmlFor="message" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Project Brief</Label>
+                <span className="text-[10px] text-muted-foreground">(Optional)</span>
                 <Textarea id="message" name="message" placeholder="Describe the creative direction and deliverables..." value={formData.message} onChange={handleInputChange} className="min-h-[120px] rounded-xl bg-secondary/50 border-transparent focus-visible:ring-accent resize-none p-4" />
               </div>
 

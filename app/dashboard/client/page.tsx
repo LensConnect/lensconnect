@@ -98,9 +98,7 @@ export default function ClientDashboardPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-accent selection:text-white">
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
-        <Header />
-      </div>
+      <Header />
 
       <div className="container mx-auto px-4 py-12 max-w-[1440px]">
         {/* Cinematic Header */}
@@ -180,7 +178,7 @@ export default function ClientDashboardPage() {
               <div className="py-24 text-center rounded-3xl bg-secondary/10 border border-dashed border-border/50">
                 <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
                 <p className="text-lg font-medium text-muted-foreground mb-6">Your calendar is clear.</p>
-                <Button asChild className="rounded-full px-8 bg-foreground text-background hover:bg-foreground/90"><Link href="/search">Explore Talent</Link></Button>
+                <Button asChild className="rounded-full px-8 bg-foreground text-background hover:bg-foreground/90"><Link href="/photographers">Explore Talent</Link></Button>
               </div>
             )}
           </TabsContent>

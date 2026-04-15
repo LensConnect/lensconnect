@@ -85,6 +85,12 @@ export default function SearchPage() {
     fetchPhotographers()
   }, [])
 
+  const names = photographers.map((photo) =>(
+    <div key={photo.id}>
+      {photo.full_name}
+    </div>
+  ))
+
   const filteredPhotographers = useMemo(() => {
     const filtered = photographers.filter((photographer) => {
       if (searchQuery && !photographer.full_name.toLowerCase().includes(searchQuery.toLowerCase())) return false
@@ -263,7 +269,7 @@ export default function SearchPage() {
                 {filteredPhotographers.map((photographer) => (
                   <Link
                     key={photographer.id}
-                    href={`/photographer/${photographer.id}`}
+                    href={`/photographer/${photographer.full_name}/${photographer.id}`}
                     className="group block break-inside-avoid"
                   >
                     <div className="relative rounded-2xl overflow-hidden bg-secondary/20 hover:bg-secondary/40 transition-colors duration-500 border border-border/40">
