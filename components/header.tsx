@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, usePathname } from "next/navigation";
@@ -174,7 +175,13 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <Camera className="h-6 w-6 text-primary" />
+          <Image 
+            src="/logo.png" 
+            alt="LensConnect Logo" 
+            width={32} 
+            height={32} 
+            className="h-8 w-8 object-contain"
+          />
           <span className="text-xl font-semibold">LensConnect</span>
         </Link>
 
@@ -298,7 +305,13 @@ export function Header() {
             <SheetContent side="left">
               <SheetHeader>
                 <SheetTitle className="text-left flex items-center gap-2">
-                  <Camera className="h-5 w-5 text-primary" />
+                  <Image 
+                    src="/logo.png" 
+                    alt="LensConnect Logo" 
+                    width={24} 
+                    height={24} 
+                    className="h-6 w-6 object-contain"
+                  />
                   LensConnect
                 </SheetTitle>
               </SheetHeader>
