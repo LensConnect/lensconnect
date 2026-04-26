@@ -187,7 +187,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation - Centered */}
-        <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-1 lg:gap-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <nav className="hidden xl:flex absolute left-1/2 -translate-x-1/2 items-center gap-1 lg:gap-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {navLinks.map((link) => {
             if (!link.roles.includes(currentRole)) return null;
             const active = isActiveLink(link.href);
@@ -195,7 +195,7 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`whitespace-nowrap shrink-0 text-sm font-bold tracking-tight transition-all px-4 py-2 rounded-full relative ${
+                className={`whitespace-nowrap none shrink-0 text-sm font-bold tracking-tight transition-all px-4 py-2 rounded-full ${
                   active 
                     ? "text-primary bg-primary/5" 
                     : "text-foreground/60 hover:text-foreground hover:bg-muted"
@@ -215,10 +215,10 @@ export function Header() {
               </Link>
             )
           })}
-        </nav>
+        </nav> 
 
         <div className="flex items-center gap-4 shrink-0">
-          <button className="hidden md:flex p-2 hover:bg-muted rounded-full transition-colors">
+          <button className="hidden lg:flex p-2 hover:bg-muted rounded-full transition-colors">
             <Search className="h-5 w-5 text-foreground/60" />
           </button>
           
@@ -304,7 +304,7 @@ export function Header() {
           {/* Mobile Navigation */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="xl:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
