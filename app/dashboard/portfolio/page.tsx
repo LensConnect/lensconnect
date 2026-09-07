@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -7,7 +7,26 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, X, MapPin, Tag, ImagePlus, ArrowLeft, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  MapPin,
+  Tag,
+  ImagePlus,
+  ArrowLeft,
+  Sparkles,
+  Plus,
+  Layers,
+  Eye,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { UploadButton } from "@uploadthing/react";
@@ -50,6 +69,8 @@ const categories = [
   "Travel",
   "Macro",
   "Street",
+  "Commercial",
+  "Editorial",
 ];
 
 export default function PortfolioPage() {
@@ -97,7 +118,6 @@ export default function PortfolioPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, selectedPortfolio]);
 
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -133,10 +153,6 @@ export default function PortfolioPage() {
     return Object.keys(newErrors).length === 0;
   };
 
- 
- 
-
- 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -163,14 +179,14 @@ export default function PortfolioPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to create portfolio entry");
       } else {
-        toast.success(data.message);
+        toast.success(data.message || "Portfolio created successfully!");
         setFormData({ imageUrl: [], title: "", location: "", description: "", category: [] });
-        
+        fetchPortfolio(user.id);
       }
     } catch {
-      toast.error("Unexpected error occurred.");
+      toast.error("Unexpected error occurred while creating portfolio.");
     } finally {
       setIsSubmitting(false);
     }
@@ -187,11 +203,12 @@ export default function PortfolioPage() {
     }));
   };
 
-
-
   const fetchPortfolio = async (userId: string) => {
     try {
-      const response = await fetch(`/api/create_portfolios?photographerId=${userId}`, { method: "GET", headers: { "Content-Type": "application/json" } });
+      const response = await fetch(`/api/create_portfolios?photographerId=${userId}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
       const data = await response.json();
       if (response.ok && data.portfolios) {
         setPortfolios(data.portfolios);
@@ -210,331 +227,300 @@ export default function PortfolioPage() {
       setLoading(false);
     }
   }, [user]);
-  
+
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-white">
+    <div className="min-h-screen flex flex-col bg-zinc-50/50 dark:bg-zinc-950/50 text-foreground">
       <Header />
 
-      {/* Hero banner */}
-      <div className="relative overflow-hidden border-b border-gray-100 bg-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full opacity-10 blur-3xl"
-          
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 right-0 h-[400px] w-[400px] rounded-full opacity-5 blur-3xl"
-          
-        />
-        <div className="relative mx-auto max-w-[1300px] px-4 py-12">
-          <Link
-            href="/photographer/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[#FF4F01] transition-colors mb-6"
+      {/* Header Banner */}
+      <section className="border-b border-border/80 bg-card py-8 sm:py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="rounded-xl text-xs font-semibold h-8.5 px-3 border-border/80 bg-background hover:bg-muted gap-1.5 shadow-xs"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
+            <Link href="/dashboard">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Dashboard</span>
+            </Link>
+          </Button>
 
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-xl shadow-md"
-              style={{ background: "linear-gradient(135deg, #FF4F01, #FF8C42)" }}
-            >
-              <ImagePlus className="h-6 w-6 text-white" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className="rounded-full px-2.5 py-0.5 text-xs font-semibold gap-1.5 border-border/80 bg-background text-muted-foreground"
+                >
+                  <ImagePlus className="h-3.5 w-3.5 text-primary" />
+                  Creator Showcase
+                </Badge>
+                <span className="text-xs text-muted-foreground font-mono">Portfolio Studio</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
+                Manage Portfolio Works
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Upload your curated photography collections and editorial shoots.
+              </p>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Portfolio Studio</h1>
-              <p className="text-gray-400 text-sm mt-0.5">Showcase your finest work to the world</p>
+
+            <div className="text-xs text-muted-foreground font-medium">
+              <strong className="text-foreground">{portfolios.length}</strong> collections published
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="mx-auto w-full max-w-[1300px] px-4 py-10 space-y-16">
-
-        {/* ── Upload Form ── */}
+      {/* Main Workspace Area */}
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+        {/* Upload Form Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.3 }}
+          className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-xs space-y-6"
         >
-          <form onSubmit={handleSubmit}>
-            <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-sm">
-              {/* Form header */}
-              <div className="px-8 py-5 border-b border-gray-100 flex items-center gap-2 bg-orange-50">
-                <Sparkles className="h-4 w-4 text-[#FF4F01]" />
-                <span className="text-sm font-semibold text-[#FF4F01] uppercase tracking-widest">
-                  New Portfolio Entry
-                </span>
+          <div className="border-b border-border/60 pb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
+              Add New Collection
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              Images appear on your public creator profile
+            </span>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Upload Zone */}
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold text-foreground">
+                Collection Photos <span className="text-destructive">*</span>
+              </Label>
+
+              <div
+                className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${
+                  errors.imageUrl
+                    ? "border-destructive bg-destructive/5"
+                    : "border-border/80 hover:border-primary/50 bg-muted/20"
+                }`}
+              >
+                <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                    <ImagePlus className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground">Upload High-Res Shots</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Up to 10 images · Max 8MB each · JPG, PNG, WEBP
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <UploadButton<OurFileRouter, "portfolioImages">
+                      endpoint="portfolioImages"
+                      appearance={{
+                        button:
+                          "bg-primary text-primary-foreground font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:bg-primary/90 transition-all",
+                        allowedContent: "hidden",
+                        container: "flex flex-col items-center gap-1",
+                      }}
+                      content={{
+                        button({ ready, isUploading, uploadProgress }) {
+                          if (isUploading)
+                            return (
+                              <span className="flex items-center gap-1.5 text-xs">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                {uploadProgress ? `${uploadProgress}%` : "Uploading..."}
+                              </span>
+                            );
+                          return ready ? "Select Files" : "Loading...";
+                        },
+                      }}
+                      onClientUploadComplete={(res) => {
+                        if (res && res.length > 0) {
+                          const urls = res.map((r) => r.ufsUrl);
+                          setFormData((prev) => ({
+                            ...prev,
+                            imageUrl: [...prev.imageUrl, ...urls],
+                          }));
+                          setErrors((prev) => ({ ...prev, imageUrl: undefined }));
+                          toast.success(`${urls.length} image${urls.length > 1 ? "s" : ""} uploaded!`);
+                        }
+                      }}
+                      onUploadError={(err) => {
+                        toast.error(`Upload failed: ${err.message}`);
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="p-8 space-y-8">
+              {errors.imageUrl && (
+                <p className="text-destructive text-[11px] font-medium">{errors.imageUrl[0]}</p>
+              )}
 
-                {/* ── Image Upload Zone ── */}
-                <div className="space-y-4">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400">
-                    Images
-                  </label>
-
-                  <div
-                    className={`relative rounded-xl border-2 border-dashed transition-colors overflow-hidden ${
-                      errors.imageUrl
-                        ? "border-red-400 bg-red-50"
-                        : "border-orange-200 hover:border-[#FF4F01] bg-orange-50/40"
-                    }`}
+              {/* Uploaded Images Preview Strip */}
+              <AnimatePresence>
+                {formData.imageUrl.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-2"
                   >
-                    <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+                    {formData.imageUrl.map((img, idx) => (
                       <div
-                        className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-                        style={{ background: "rgba(255,79,1,0.1)" }}
+                        key={img}
+                        className="group relative aspect-square rounded-xl overflow-hidden border border-border/80 bg-muted"
                       >
-                        <ImagePlus className="h-8 w-8 text-[#FF4F01]" />
-                      </div>
-
-                      <p className="text-gray-800 font-semibold mb-1">Drop your shots here</p>
-                      <p className="text-gray-400 text-sm mb-5">
-                        Up to 10 images · Max 8 MB each · JPG, PNG, WEBP
-                      </p>
-
-                      <UploadButton<OurFileRouter, "portfolioImages">
-                        endpoint="portfolioImages"
-                        appearance={{
-                          button:
-                            "ut-ready:bg-[#FF4F01] ut-uploading:bg-[#FF4F01]/70 after:bg-[FF4F01] text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all hover:brightness-110 shadow-md shadow-[#FF4F01]/20",
-                          allowedContent: "hidden",
-                          container: "flex flex-col items-center gap-2",
-                        }}
-                        content={{
-                          button({ ready, isUploading, uploadProgress }) {
-                            if (isUploading)
-                              return (
-                                <span className="flex items-center gap-2">
-                                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                  </svg>
-                                  {uploadProgress ? `${uploadProgress}%` : "Uploading\u2026"}
-                                </span>
-                              );
-                            return ready ? "Choose Photos" : "Loading\u2026";
-                          },
-                        }}
-                        onClientUploadComplete={(res) => {
-                          if (res && res.length > 0) {
-                            const urls = res.map((r) => r.ufsUrl);
-                            setFormData((prev) => ({
-                              ...prev,
-                              imageUrl: [...prev.imageUrl, ...urls],
-                            }));
-                            setErrors((prev) => ({ ...prev, imageUrl: undefined }));
-                            toast.success(`${urls.length} image${urls.length > 1 ? "s" : ""} uploaded!`);
-                          }
-                        }}
-                        onUploadError={(err) => {
-                          toast.error(`Upload failed: ${err.message}`);
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {errors.imageUrl && (
-                    <p className="text-red-500 text-xs mt-1">{errors.imageUrl[0]}</p>
-                  )}
-
-                  {/* Preview grid */}
-                  <AnimatePresence>
-                    {formData.imageUrl.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3"
-                      >
-                        {formData.imageUrl.map((img, idx) => (
-                          <motion.div
-                            key={img}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.2, delay: idx * 0.04 }}
-                            className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200"
-                          >
-                            <img
-                              src={img}
-                              alt={`Preview ${idx + 1}`}
-                              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300" />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-200 hover:bg-red-600 hover:scale-110"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </motion.div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* ── Text Fields ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400">
-                      Title
-                    </label>
-                    <input
-                      name="title"
-                      placeholder="E.g., Twilight Wedding in Lagos"
-                      value={formData.title}
-                      onChange={handleChange}
-                      className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-300 outline-none transition-all focus:ring-2 focus:ring-[#FF4F01]/30 ${
-                        errors.title ? "border-red-400" : "border-gray-200 focus:border-[#FF4F01]"
-                      }`}
-                    />
-                    {errors.title && (
-                      <p className="text-red-500 text-xs">{errors.title}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400">
-                      Location
-                    </label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
-                      <input
-                        name="location"
-                        placeholder="E.g., Lagos, Nigeria"
-                        value={formData.location}
-                        onChange={handleChange}
-                        className={`w-full rounded-xl border bg-white pl-10 pr-4 py-3 text-sm text-gray-900 placeholder-gray-300 outline-none transition-all focus:ring-2 focus:ring-[#FF4F01]/30 ${
-                          errors.location ? "border-red-400" : "border-gray-200 focus:border-[#FF4F01]"
-                        }`}
-                      />
-                    </div>
-                    {errors.location && (
-                      <p className="text-red-500 text-xs">{errors.location}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    rows={4}
-                    placeholder="Tell the story behind this shoot\u2026"
-                    value={formData.description}
-                    onChange={handleChange}
-                    className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-300 outline-none transition-all resize-none focus:ring-2 focus:ring-[#FF4F01]/30 ${
-                      errors.description ? "border-red-400" : "border-gray-200 focus:border-[#FF4F01]"
-                    }`}
-                  />
-                  {errors.description && (
-                    <p className="text-red-500 text-xs">{errors.description}</p>
-                  )}
-                </div>
-
-                {/* ── Categories ── */}
-                <div className="space-y-3">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400">
-                    <Tag className="inline h-3 w-3 mr-1 -mt-0.5" />
-                    Categories
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((cat) => {
-                      const active = formData.category.includes(cat);
-                      return (
+                        <img
+                          src={img}
+                          alt={`Upload preview ${idx + 1}`}
+                          className="object-cover w-full h-full"
+                        />
                         <button
-                          key={cat}
                           type="button"
-                          onClick={() => toggleCategory(cat)}
-                          className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wide transition-all duration-200 ${
-                            active
-                              ? "border-[#FF4F01] bg-[#FF4F01] text-white shadow-md shadow-[#FF4F01]/20"
-                              : "border-gray-200 bg-white text-gray-500 hover:border-[#FF4F01] hover:text-[#FF4F01]"
-                          }`}
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1.5 right-1.5 h-6 w-6 rounded-lg bg-destructive text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all shadow-xs"
+                          title="Remove photo"
                         >
-                          {cat}
+                          <X className="h-3.5 w-3.5" />
                         </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
-                {/* ── Submit ── */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="relative w-full overflow-hidden rounded-xl py-3.5 text-sm font-bold text-white uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.99]"
-                    style={{
-                      background: "linear-gradient(135deg, #FF4F01, #FF8C42)",
-                      boxShadow: "0 6px 24px rgba(255,79,1,0.25)",
-                    }}
-                  >
-                    {isSubmitting ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                        </svg>
-                        Publishing\u2026
-                      </span>
-                    ) : (
-                      "Publish Portfolio"
-                    )}
-                  </button>
+            {/* Title & Location */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="title" className="text-xs font-semibold text-foreground">
+                  Collection Title <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  name="title"
+                  placeholder="e.g. Sunset Editorial at Lekki Beach"
+                  value={formData.title}
+                  onChange={handleChange}
+                  className="h-10 rounded-xl bg-background border-border/80 text-xs"
+                />
+                {errors.title && <p className="text-destructive text-[11px]">{errors.title}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="location" className="text-xs font-semibold text-foreground">
+                  Location <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    id="location"
+                    name="location"
+                    placeholder="e.g. Lagos, Nigeria"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs"
+                  />
                 </div>
+                {errors.location && <p className="text-destructive text-[11px]">{errors.location}</p>}
               </div>
             </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="description" className="text-xs font-semibold text-foreground">
+                Story / Description <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="description"
+                name="description"
+                rows={3}
+                placeholder="Share the creative direction, concept, and equipment used in this shoot..."
+                value={formData.description}
+                onChange={handleChange}
+                className="rounded-xl bg-background border-border/80 text-xs resize-none"
+              />
+              {errors.description && <p className="text-destructive text-[11px]">{errors.description}</p>}
+            </div>
+
+            {/* Categories */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-foreground">Categories / Tags</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map((cat) => {
+                  const active = formData.category.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => toggleCategory(cat)}
+                      className={`px-3 py-1 rounded-xl text-xs font-medium border transition-all ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary shadow-2xs font-semibold"
+                          : "bg-background text-muted-foreground border-border/80 hover:border-primary/40 hover:text-foreground"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-11 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs mt-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span>Publishing Collection...</span>
+                </>
+              ) : (
+                "Publish Collection"
+              )}
+            </Button>
           </form>
         </motion.div>
 
-        {/* ── Portfolio Grid ── */}
-        <div>
-          <div className="flex items-center gap-3 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Your Work</h2>
-            {!loading && portfolios.length > 0 && (
-              <span
-                className="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-bold text-[#FF4F01]"
-                style={{ background: "rgba(255,79,1,0.1)" }}
-              >
-                {portfolios.length}
-              </span>
-            )}
+        {/* Portfolio Gallery Section */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <span>Published Portfolio Collections</span>
+            </h2>
+            <span className="text-xs text-muted-foreground">Click collection to inspect full gallery</span>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm"
-                >
-                  <Skeleton className="h-52 w-full bg-gray-100" />
-                  <div className="p-4 space-y-2">
-                    <Skeleton className="h-4 w-3/4 bg-gray-100" />
-                    <Skeleton className="h-3 w-1/2 bg-gray-100" />
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-3xl border border-border/60 bg-card p-4 space-y-3">
+                  <Skeleton className="h-44 w-full rounded-2xl" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
                 </div>
               ))}
             </div>
           ) : portfolios.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-orange-50/40 py-20 text-center">
-              <div
-                className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-                style={{ background: "rgba(255,79,1,0.1)" }}
-              >
-                <ImagePlus className="h-7 w-7 text-[#FF4F01]" />
+            <div className="py-20 px-6 text-center rounded-3xl border-2 border-dashed border-border/80 bg-card/50 flex flex-col items-center justify-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
+                <ImagePlus className="h-6 w-6" />
               </div>
-              <p className="text-gray-400 text-sm">No portfolios yet. Upload your first one above!</p>
+              <div className="max-w-sm space-y-1">
+                <h3 className="text-sm font-bold text-foreground">No Collections Uploaded</h3>
+                <p className="text-xs text-muted-foreground">
+                  Use the form above to add your first photo series or editorial project.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -543,330 +529,200 @@ export default function PortfolioPage() {
                 const total = item.imageUrl.length;
 
                 return (
-                  <motion.div
+                  <div
                     key={item.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
                     onClick={() => openLightbox(item)}
-                    className="group relative rounded-2xl overflow-hidden border border-gray-100 hover:border-[#FF4F01]/40 bg-white transition-all duration-300 hover:shadow-xl hover:shadow-[#FF4F01]/10 cursor-pointer"
+                    className="group rounded-3xl border border-border/80 bg-card overflow-hidden shadow-xs hover:border-primary/40 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
                   >
-                    {/* Image with hover overlay */}
-                    <div className="relative aspect-[4/3] overflow-hidden bg-gray-100" onClick={() => { setIsOpen(true); setActiveIndex(prev => ({ ...prev, [item.id]: currentIndex })); }}>
-                      <Image
-                        src={item.imageUrl[currentIndex]}
-                        alt={item.title}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
+                    <div>
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+                        <Image
+                          src={item.imageUrl[currentIndex] || "/placeholder.svg"}
+                          alt={item.title}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-80" />
 
-                      {/* Hover overlay with details */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-4">
-                        <div className="translate-y-3 group-hover:translate-y-0 transition-transform duration-500 space-y-2">
-                          <h3 className="font-bold text-white text-base leading-snug line-clamp-1">
-                            {item.title}
-                          </h3>
-                          <p className="text-white/80 text-xs line-clamp-2 leading-relaxed">
-                            {item.description}
-                          </p>
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="flex items-center gap-1 text-[11px] text-white/90">
+                        {total > 1 && (
+                          <div className="absolute top-2.5 right-2.5 rounded-full bg-black/60 backdrop-blur-md px-2 py-0.5 text-[10px] font-bold text-white">
+                            {currentIndex + 1} / {total}
+                          </div>
+                        )}
+
+                        <div className="absolute bottom-2.5 left-3 right-3 text-white">
+                          <h3 className="text-sm font-bold truncate">{item.title}</h3>
+                          {item.location && (
+                            <p className="text-[11px] text-white/80 flex items-center gap-1 mt-0.5">
                               <MapPin className="h-3 w-3" />
                               {item.location}
-                            </span>
-                            {item.category && item.category.length > 0 && (
-                              <span className="text-[10px] text-[#FF4F01] font-semibold bg-white/95 rounded-full px-2 py-0.5">
-                                {Array.isArray(item.category)
-                                  ? item.category[0]
-                                  : item.category}
-                                {Array.isArray(item.category) && item.category.length > 1
-                                  ? ` +${item.category.length - 1}`
-                                  : ""}
-                              </span>
-                            )}
-                          </div>
+                            </p>
+                          )}
                         </div>
+
+                        {/* Prev/Next overlay controls */}
+                        {total > 1 && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePrev(item.id, total);
+                              }}
+                              className="absolute left-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <ChevronLeft className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNext(item.id, total);
+                              }}
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
 
-                      {/* Navigation arrows */}
-                      {total > 1 && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrev(item.id, total);
-                            }}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm text-gray-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#FF4F01] hover:text-white shadow z-10"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleNext(item.id, total);
-                            }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm text-gray-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#FF4F01] hover:text-white shadow z-10"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
+                      <div className="p-3.5 space-y-2">
+                        {item.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                            {item.description}
+                          </p>
+                        )}
 
-                          {/* Dot indicators */}
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                            {item.imageUrl.map((_, i) => (
-                              <button
-                                key={i}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveIndex((prev) => ({ ...prev, [item.id]: i }));
-                                }}
-                                className="h-1.5 rounded-full transition-all duration-200"
-                                style={{
-                                  width: i === currentIndex ? "20px" : "6px",
-                                  background:
-                                    i === currentIndex ? "#FF4F01" : "rgba(255,255,255,0.6)",
-                                }}
-                              />
+                        {item.category && item.category.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {item.category.slice(0, 2).map((cat) => (
+                              <span
+                                key={cat}
+                                className="px-2 py-0.5 rounded-md bg-muted text-[10px] font-semibold text-foreground/80"
+                              >
+                                {cat}
+                              </span>
                             ))}
                           </div>
-                        </>
-                      )}
-
-                      {/* Image count badge */}
-                      {total > 1 && (
-                        <div className="absolute top-2 right-2 rounded-full bg-white/80 backdrop-blur-sm px-2 py-0.5 text-xs text-gray-700 font-medium shadow-sm z-10">
-                          {currentIndex + 1}/{total}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </motion.div>
+
+                    <div className="px-3.5 pb-3 pt-1 border-t border-border/40 text-[11px] font-semibold text-primary flex items-center justify-between">
+                      <span>View Gallery</span>
+                      <Eye className="h-3 w-3" />
+                    </div>
+                  </div>
                 );
               })}
-
-              {/* Lightbox Modal */}
-              <AnimatePresence>
-                {isOpen && selectedPortfolio && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    onClick={closeLightbox}
-                    className="fixed inset-0 z-50 bg-white overflow-y-auto"
-                  >
-                    <motion.div
-                      initial={{ scale: 0.96, opacity: 0, y: 20 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.96, opacity: 0, y: 20 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="relative w-full min-h-screen bg-white"
-                    >
-                      {/* Close button */}
-                      <button
-                        onClick={closeLightbox}
-                        className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 flex items-center justify-center shadow-lg border border-gray-200 hover:bg-[#FF4F01] hover:text-white transition-all duration-200"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-
-                      {/* Details panel */}
-                      <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-16 pb-8 space-y-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
-                            {selectedPortfolio.title}
-                          </h2>
-                          <span
-                            className="shrink-0 inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#FF4F01]"
-                            style={{ background: "rgba(255,79,1,0.1)" }}
-                          >
-                            Portfolio
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4 text-[#FF4F01]" />
-                          <span className="font-medium">{selectedPortfolio.location}</span>
-                        </div>
-
-                        <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                          {selectedPortfolio.description}
-                        </p>
-
-                        {selectedPortfolio.category &&
-                          selectedPortfolio.category.length > 0 && (
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              {selectedPortfolio.category.map((cat) => (
-                                <span
-                                  key={cat}
-                                  className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-[#FF4F01] uppercase tracking-wide"
-                                >
-                                  {cat}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                      </div>
-
-                      {/* Image slider */}
-                      {selectedPortfolio.imageUrl.length > 1 && (
-                        <div className="bg-white border-t border-gray-100">
-                          <div className="max-w-5xl mx-auto px-4 sm:px-8 py-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                                  Gallery
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                  {lightboxIndex + 1} of {selectedPortfolio.imageUrl.length}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() =>
-                                    setLightboxIndex(
-                                      (i) =>
-                                        (i - 1 + selectedPortfolio.imageUrl.length) %
-                                        selectedPortfolio.imageUrl.length
-                                    )
-                                  }
-                                  className="h-9 w-9 rounded-full bg-white text-gray-700 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-[#FF4F01] hover:text-white hover:border-[#FF4F01] transition-all"
-                                >
-                                  <ChevronLeft className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setLightboxIndex(
-                                      (i) => (i + 1) % selectedPortfolio.imageUrl.length
-                                    )
-                                  }
-                                  className="h-9 w-9 rounded-full bg-white text-gray-700 flex items-center justify-center border border-gray-200 shadow-sm hover:bg-[#FF4F01] hover:text-white hover:border-[#FF4F01] transition-all"
-                                >
-                                  <ChevronRight className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Thumbnail rail */}
-                            <div className="relative">
-                              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200">
-                                {selectedPortfolio.imageUrl.map((url, i) => {
-                                  const active = i === lightboxIndex;
-                                  return (
-                                    <button
-                                      key={i}
-                                      onClick={() => setLightboxIndex(i)}
-                                      className={`relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                                        active
-                                          ? "border-[#FF4F01] shadow-md shadow-[#FF4F01]/20 scale-95"
-                                          : "border-transparent opacity-60 hover:opacity-100 hover:border-gray-200"
-                                      }`}
-                                    >
-                                      <Image
-                                        src={url}
-                                        alt={`Thumbnail ${i + 1}`}
-                                        fill
-                                        className="object-cover"
-                                      />
-                                      {active && (
-                                        <div className="absolute inset-0 bg-[#FF4F01]/10" />
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Image area */}
-                      <div className="relative w-full bg-gray-50">
-                        <div className="relative w-full aspect-[16/9] max-h-[80vh]">
-                          <AnimatePresence mode="wait">
-                            <motion.div
-                              key={selectedPortfolio.imageUrl[lightboxIndex]}
-                              initial={{ opacity: 0, x: 40 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -40 }}
-                              transition={{ duration: 0.4, ease: "easeOut" }}
-                              drag="x"
-                              dragConstraints={{ left: 0, right: 0 }}
-                              dragElastic={0.2}
-                              onDragEnd={(_, info) => {
-                                if (info.offset.x > 100) {
-                                  setLightboxIndex(
-                                    (i) =>
-                                      (i - 1 + selectedPortfolio.imageUrl.length) %
-                                      selectedPortfolio.imageUrl.length
-                                  );
-                                } else if (info.offset.x < -100) {
-                                  setLightboxIndex(
-                                    (i) => (i + 1) % selectedPortfolio.imageUrl.length
-                                  );
-                                }
-                              }}
-                              className="absolute inset-0 cursor-grab active:cursor-grabbing"
-                            >
-                              <Image
-                                src={selectedPortfolio.imageUrl[lightboxIndex]}
-                                alt={selectedPortfolio.title}
-                                fill
-                                className="object-contain pointer-events-none"
-                                draggable={false}
-                              />
-                            </motion.div>
-                          </AnimatePresence>
-
-                          {/* Image counter */}
-                          <div className="absolute top-4 left-4 rounded-full bg-black/70 backdrop-blur-sm px-3 py-1 text-xs text-white font-medium">
-                            {lightboxIndex + 1} / {selectedPortfolio.imageUrl.length}
-                          </div>
-
-                          {/* Large nav arrows */}
-                          {selectedPortfolio.imageUrl.length > 1 && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  setLightboxIndex(
-                                    (i) =>
-                                      (i - 1 + selectedPortfolio.imageUrl.length) %
-                                      selectedPortfolio.imageUrl.length
-                                  )
-                                }
-                                className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center shadow-lg border border-gray-200 hover:bg-[#FF4F01] hover:text-white hover:border-[#FF4F01] transition-all"
-                              >
-                                <ChevronLeft className="h-6 w-6" />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setLightboxIndex(
-                                    (i) => (i + 1) % selectedPortfolio.imageUrl.length
-                                  )
-                                }
-                                className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center shadow-lg border border-gray-200 hover:bg-[#FF4F01] hover:text-white hover:border-[#FF4F01] transition-all"
-                              >
-                                <ChevronRight className="h-6 w-6" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           )}
-        </div>
-      </div>
+        </section>
+
+        {/* Lightbox Modal */}
+        <AnimatePresence>
+          {isOpen && selectedPortfolio && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeLightbox}
+              className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl overflow-y-auto p-4 sm:p-8 flex items-center justify-center"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-5xl rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-2xl space-y-6"
+              >
+                <div className="flex items-start justify-between gap-4 border-b border-border/60 pb-4">
+                  <div className="space-y-1">
+                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                      {selectedPortfolio.title}
+                    </h2>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                      {selectedPortfolio.location}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={closeLightbox}
+                    className="h-8 w-8 rounded-xl bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Main Lightbox Image */}
+                <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-black/80 flex items-center justify-center">
+                  <Image
+                    src={selectedPortfolio.imageUrl[lightboxIndex] || "/placeholder.svg"}
+                    alt={selectedPortfolio.title}
+                    fill
+                    className="object-contain"
+                  />
+
+                  {selectedPortfolio.imageUrl.length > 1 && (
+                    <>
+                      <button
+                        onClick={() =>
+                          setLightboxIndex(
+                            (i) =>
+                              (i - 1 + selectedPortfolio.imageUrl.length) %
+                              selectedPortfolio.imageUrl.length
+                          )
+                        }
+                        className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 hover:bg-background text-foreground flex items-center justify-center shadow-md transition-all"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setLightboxIndex(
+                            (i) => (i + 1) % selectedPortfolio.imageUrl.length
+                          )
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl bg-background/80 hover:bg-background text-foreground flex items-center justify-center shadow-md transition-all"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </>
+                  )}
+
+                  <div className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs text-white font-mono font-bold">
+                    {lightboxIndex + 1} / {selectedPortfolio.imageUrl.length}
+                  </div>
+                </div>
+
+                {/* Thumbnail Rail */}
+                {selectedPortfolio.imageUrl.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {selectedPortfolio.imageUrl.map((url, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setLightboxIndex(i)}
+                        className={`relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                          i === lightboxIndex
+                            ? "border-primary shadow-xs scale-95"
+                            : "border-transparent opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <Image src={url} alt={`Thumb ${i + 1}`} fill className="object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {selectedPortfolio.description && (
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    {selectedPortfolio.description}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
     </div>
   );
 }
-
-
-  
-
-
-
-
-
