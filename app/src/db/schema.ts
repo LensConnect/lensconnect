@@ -64,7 +64,7 @@ export const booking = mysqlTable("booking", {
   durationHours: int().notNull(),
   location: varchar({ length: 255 }).notNull(),
   type: varchar({ length: 255 }).notNull(),
-  status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled"]).notNull(),
+  status: mysqlEnum("status", ["pending", "confirmed", "completed", "rejected"]).notNull(),
   messages: varchar({ length: 255 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updataed: timestamp().defaultNow().onUpdateNow(),

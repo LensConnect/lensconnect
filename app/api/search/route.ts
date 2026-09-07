@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
 import { parseNaturalLanguageQuery } from '@/lib/aiSearchParser';
 
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

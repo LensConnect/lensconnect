@@ -210,68 +210,185 @@ export default function ClientDashboardPage() {
   );
 }
 
-function ClientBookingCard({ booking, showCancel = false, showReview = false, onCancel }: { booking: any; showCancel?: boolean; showReview?: boolean; onCancel?: (id: string) => void; }) {
+function ClientBookingCard({
+  booking,
+  showCancel = false,
+  showReview = false,
+  onCancel,
+}: {
+  booking: any;
+  showCancel?: boolean;
+  showReview?: boolean;
+  onCancel?: (id: string) => void;
+}) {
   const statusConfig = {
-    pending: { icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20", label: "Awaiting Response" },
-    confirmed: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", label: "Confirmed" },
-    completed: { icon: CheckCircle2, color: "text-blue-500", bg: "bg-blue-500/10 border-blue-500/20", label: "Completed" },
-    accepted: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", label: "Accepted" },
-    cancelled: { icon: XCircle, color: "text-red-500", bg: "bg-red-500/10 border-red-500/20", label: "Cancelled" },
+    pending: {
+      icon: AlertCircle,
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-500/10 border-amber-500/20",
+      label: "Awaiting Response",
+    },
+    confirmed: {
+      icon: CheckCircle2,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-500/10 border-emerald-500/20",
+      label: "Confirmed",
+    },
+    completed: {
+      icon: CheckCircle2,
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-500/10 border-blue-500/20",
+      label: "Completed",
+    },
+    accepted: {
+      icon: CheckCircle2,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-500/10 border-emerald-500/20",
+      label: "Accepted",
+    },
+    cancelled: {
+      icon: XCircle,
+      color: "text-rose-600 dark:text-rose-400",
+      bg: "bg-rose-500/10 border-rose-500/20",
+      label: "Cancelled",
+    },
   };
 
   const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.pending;
   const StatusIcon = status.icon;
 
+  const dateFormatted = booking.start_time
+    ? new Date(booking.start_time).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Date TBD";
+
+  const timeFormatted = booking.start_time
+    ? new Date(booking.start_time).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "Time TBD";
+
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-8 rounded-3xl bg-secondary/20 border border-border/40 hover:bg-secondary/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-6">
-      <div className="flex-1 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h3 className="font-bold text-2xl tracking-tight capitalize">{booking.shoot_type}</h3>
-              <Badge variant="outline" className={`${status.bg} ${status.color} font-semibold uppercase tracking-widest px-3 py-1 text-[10px]`}>
-                <StatusIcon className="h-3 w-3 mr-1.5" />{status.label}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground font-medium">Photographer: <span className="text-foreground">{booking.profiles?.full_name || "Unknown"}</span></p>
+    <div className="overflow-hidden border border-border/60 bg-card/60 backdrop-blur-sm hover:border-primary/40 hover:shadow-lg transition-all duration-300 rounded-3xl p-6 sm:p-7 space-y-6">
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h3 className="font-extrabold text-xl sm:text-2xl tracking-tight capitalize text-foreground">
+              {booking.shoot_type || "Photography"} Session
+            </h3>
+            <Badge
+              variant="outline"
+              className={`${status.bg} ${status.color} font-bold uppercase tracking-wider px-2.5 py-0.5 text-[10px] rounded-full`}
+            >
+              <StatusIcon className="h-3 w-3 mr-1" />
+              {status.label}
+            </Badge>
           </div>
-          <div className="sm:text-right">
-            <div className="text-3xl font-bold tracking-tight">${booking.total_price || 0}</div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Total Cost</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Photographer:{" "}
+            <strong className="text-foreground font-bold">
+              {booking.profiles?.full_name || "Photographer"}
+            </strong>
+          </p>
+        </div>
+
+        <div className="sm:text-right">
+          <div className="text-2xl sm:text-3xl font-black tracking-tight text-primary">
+            ₦{(Number(booking.total_price) || 0).toLocaleString()}
+          </div>
+          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+            Total Cost
+          </span>
+        </div>
+      </div>
+
+      {/* Schedule & Location Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-sm">
+        <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-secondary/30 border border-border/30">
+          <div className="p-2 rounded-xl bg-background text-primary shrink-0 shadow-xs">
+            <Calendar className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
+              Session Date
+            </span>
+            <span className="font-bold text-foreground text-xs sm:text-sm truncate block">
+              {dateFormatted}
+            </span>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-6 text-sm font-medium">
-          <div className="flex items-center gap-2.5 bg-background/50 px-4 py-2 rounded-xl border border-border/30">
-            <Calendar className="h-4 w-4 text-accent" />
-            <span>{booking.start_time ? new Date(booking.start_time).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric", }) : "Date N/A"}</span>
+        <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-secondary/30 border border-border/30">
+          <div className="p-2 rounded-xl bg-background text-primary shrink-0 shadow-xs">
+            <Clock className="h-4 w-4" />
           </div>
-          <div className="flex items-center gap-2.5 bg-background/50 px-4 py-2 rounded-xl border border-border/30">
-            <Clock className="h-4 w-4 text-accent" />
-            <span>{booking.start_time ? new Date(booking.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", }) : "Time N/A"} ({booking.duration_hours} {booking.duration_hours === 1 ? 'hr' : 'hrs'})</span>
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
+              Time & Duration
+            </span>
+            <span className="font-bold text-foreground text-xs sm:text-sm truncate block">
+              {timeFormatted} ({booking.duration_hours || 1} hrs)
+            </span>
           </div>
-          <div className="flex items-center gap-2.5 bg-background/50 px-4 py-2 rounded-xl border border-border/30">
-            <MapPin className="h-4 w-4 text-accent" />
-            <span>{booking.location}</span>
+        </div>
+
+        <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-secondary/30 border border-border/30">
+          <div className="p-2 rounded-xl bg-background text-primary shrink-0 shadow-xs">
+            <MapPin className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider block">
+              Location
+            </span>
+            <span className="font-bold text-foreground text-xs sm:text-sm truncate block">
+              {booking.location || "To be arranged"}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="flex md:flex-col gap-3 shrink-0 mt-4 md:mt-0">
-        <Button size="lg" className="rounded-xl font-semibold bg-foreground text-background hover:bg-foreground/90 flex-1 md:w-40" asChild>
-          <Link href={`/messages?to=${booking.photographer_id}`}><MessageSquare className="h-4 w-4 mr-2" /> Message</Link>
+      {/* Action Buttons Footer */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          asChild
+          className="rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-muted text-muted-foreground hover:text-foreground h-10 px-4"
+        >
+          <Link href={`/messages?to=${booking.photographer_id}`}>
+            <MessageSquare className="h-4 w-4 mr-2 text-primary" />
+            Message Photographer
+          </Link>
         </Button>
-        {showCancel && (
-          <Button size="lg" variant="outline" className="rounded-xl font-semibold text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex-1 md:w-40 bg-transparent" onClick={() => onCancel?.(booking.id)}>
-            Cancel Request
-          </Button>
-        )}
-        {showReview && (
-          <Button size="lg" variant="outline" className="rounded-xl font-semibold bg-transparent flex-1 md:w-40 border-border/50">
-            Write Review
-          </Button>
-        )}
+
+        <div className="flex items-center gap-2.5">
+          {showCancel && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl font-bold text-xs uppercase tracking-wider h-10 px-4 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-900/50"
+              onClick={() => onCancel?.(booking.id)}
+            >
+              Cancel Request
+            </Button>
+          )}
+          {showReview && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl font-bold text-xs uppercase tracking-wider h-10 px-4 border-border/60 hover:bg-muted"
+            >
+              Write Review
+            </Button>
+          )}
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

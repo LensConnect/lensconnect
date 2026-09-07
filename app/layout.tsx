@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth-context";
 import { Providers } from "@/components/providers";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { Suspense } from "react";
 import "@uploadthing/react/styles.css"; 
@@ -33,6 +34,7 @@ export default function RootLayout({
           <Suspense fallback={<div>Loading...</div>}>
             <AuthProvider>{children}</AuthProvider>
           </Suspense>
+          <Toaster richColors position="top-right" />
         </Providers>
         <Analytics />
       </body>

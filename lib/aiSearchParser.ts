@@ -37,11 +37,12 @@ export async function parseNaturalLanguageQuery(promptText: string): Promise<Par
       Rules:
       1. Map keywords to valid specialties (e.g., 'marriage' -> 'Weddings').
       2. Extract price thresholds and locations.
-      3. Check location.
-      4. For 'sortBy', choose: 'price_asc' or 'price_desc'.
-      5. If location is not found, return empty string.
-      6. Make use of natural language for search.
-      7. Any figure with (e.g '300k' => 300000, '50k' => 50000)
+     
+      3. For 'sortBy', choose: 'price_asc' or 'price_desc'.
+      4. If location is not found, return empty string.
+      5. Make use of natural language for search.
+      6. Any figure with (e.g '300k' => 300000, '50k' => 50000).
+      7. Don't return anything else but the JSON object.
       `,
 
       prompt: `Parse this user search query: "${promptText}"`,

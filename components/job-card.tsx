@@ -1,7 +1,7 @@
 "use client"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import type { Job } from "@/lib/types"
-import { Calendar, MapPin, Clock, Briefcase, Users, TrendingUp } from "lucide-react"
+import { Calendar, MapPin, Clock, Briefcase, TrendingUp, CircleCheckBig, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,141 +10,121 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogC
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabaseClient"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
-import { JobApplication } from "@/lib/types"
-import { CircleCheckBig, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
-
-
 
 interface JobCardProps {
   job: Job
   onApply?: (jobId: string, message: string, bidAmount: number, photographer_id: string) => void
   isOwner?: boolean
+  isApplied?: boolean
 }
 
-
-
-
-export function JobCard({ job, onApply, isOwner = false }: JobCardProps) {
+export function JobCard({ job, onApply, isOwner = false, isApplied = false }: JobCardProps) {
   const { user } = useAuth()
   const [openModal, setOpenModal] = useState(false)
   const [message, setMessage] = useState("")
-  const [bidAmount, setBidAmount] = useState<number | "">(job.totalPrice)
-  const [applied, setApplied] = useState(false)
+  const [bidAmount, setBidAmount] = useState<number | "">(job.totalPrice || "")
+  const [applied, setApplied] = useState(isApplied)
   const router = useRouter()
+  const queryClient = useQueryClient()
 
-  const [apiError, setApiError] = useState<string | null>(null)
+  useEffect(() => {
+    setApplied(isApplied)
+  }, [isApplied])
 
   const bidAmountNumber = Number(bidAmount)
-
-  // Fetch application count for owners
- /*  const { data: applicationCount = 0 } = useQuery({
-    queryKey: ["job-application-count", job.id],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("job_applications")
-        .select("*", { count: 'exact', head: true })
-        .eq("job_id", job.id)
-      
-      if (error) throw error
-      return count || 0
-    },
-    enabled: isOwner
-  })
- */
-
-
-  /* const { data: userApplication } = useQuery({
-    queryKey: ["job-application", job.id, user?.id],
-    queryFn: async () => {
-     
-    
-      
-       if (!user?.id) return null
-      const { data, error } = await supabase
-        .from("job_applications")
-        .select("*")
-        .eq("job_id", job.id)
-        .eq("photographer_id", user.id)
-        .maybeSingle()
-      
-      if (error && error.code !== 'PGRST116') throw error
-      if (data) setApplied(true)
-      return data 
-    },
-    enabled: !!user?.id && !isOwner
-  }) */
+  const isJobApplied = applied || isApplied
 
   const handleOpenModal = () => {
+    createMutation.reset()
     setMessage("")
-    setBidAmount(job.totalPrice)
+    setBidAmount(job.totalPrice || "")
     setOpenModal(true)
   }
 
+  const createMutation = useMutation({
+    mutationKey: ["job-application", job.id, user?.id],
+    mutationFn: async (data: { message: string; bidAmount: number; jobId: string }) => {
+      const response = await fetch('/api/applyJobs', {
+        method: 'POST', 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, userId: user?.id })
+      });
 
- const createMutation = useMutation({
-  mutationKey: ["job-application", job.id, user?.id],
-  
-  // 1. Keep the mutationFn strictly for performing the network request
-  mutationFn: async (data: { message: string; bidAmount: number; jobId: string }) => {
-    const response = await fetch('/api/applyJobs', {
-      method: 'POST', 
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, userId: user?.id })
-    });
+      const responseData = await response.json();
 
-    const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.error || 'An unexpected error occurred');
+      }
 
-    if (!response.ok) {
-      // Pass the specific error string or structure to the throw statement
-      throw new Error(responseData.error || 'An unexpected error occurred');
-    }
-
-    return responseData;
-  },
-
-  // 2. Handle successful application logic here
-  onSuccess: (data: any) => {
-    setTimeout(()=> {
+      return responseData;
+    },
+    onSuccess: () => {
+      setApplied(true);
       setOpenModal(false);
-    toast.success("Application sent successfully!");
-     setApplied(true);
-    },10000)
-  },
-
-  // 3. Handle server errors here
-  onError: (error: Error) => {
-    // Matches the exact custom string sent by your API route
-    if (error.message === "You have already applied for this job") {
-      setTimeout(()=>{
+      toast.success("Application sent successfully!");
+      queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      if (onApply && user?.id) {
+        onApply(job.id, message, bidAmountNumber, user.id);
+      }
+    },
+    onError: (error: Error) => {
+      if (error.message === "You have already applied for this job") {
+        setApplied(true);
         setOpenModal(false);
         toast.error("You have already applied for this job.");
-        setApplied(true);
-      },10000)
-    } else {
-      toast.error(error.message || "Failed to send application!");
+        queryClient.invalidateQueries({ queryKey: ["job-applications"] });
+      } else {
+        toast.error(error.message || "Failed to send application!");
+      }
     }
-  }
-});
-
+  });
 
   const handleConfirmApply = async () => {
-createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
-   
+    if (!user) {
+      toast.error("Please log in to apply for jobs");
+      return;
+    }
+    if (user.role !== "photographer") {
+      toast.error("Only photographers can apply for jobs");
+      return;
+    }
+    if (isNaN(bidAmountNumber) || bidAmountNumber <= 0) {
+      toast.error("Please enter a valid bid price");
+      return;
+    }
+    if (!message.trim()) {
+      toast.error("Please enter a short proposal message");
+      return;
+    }
+    if (message.length > 255) {
+      toast.error("Proposal message must be 255 characters or less");
+      return;
+    }
+
+    createMutation.mutate({
+      message: message.trim(),
+      bidAmount: bidAmountNumber,
+      jobId: job.id
+    });
   }
 
-  
+  const isNew = job.createdAt && !isNaN(new Date(job.createdAt).getTime())
+    ? new Date().getTime() - new Date(job.createdAt).getTime() < 24 * 60 * 60 * 1000
+    : false;
 
-  const isNew = new Date().getTime() - new Date(job.createdAt).getTime() < 24 * 60 * 60 * 1000
+  const formattedDate = job.date && !isNaN(new Date(job.date).getTime())
+    ? format(new Date(job.date), "MMM d, yyyy")
+    : "Flexible";
 
   return (
-    <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-border/50 bg-background/50 backdrop-blur-sm shadow-sm rounded-2xl ${applied ? 'opacity-60 grayscale' : ''}`}>
+    <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-border/50 bg-background/50 backdrop-blur-sm shadow-sm rounded-2xl ${isJobApplied ? 'opacity-80' : ''}`}>
       {/* Premium Gradient Overlay */}
-      <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       
       <CardHeader className="pb-3 relative">
         <div className="flex items-start justify-between gap-4">
@@ -190,7 +170,7 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
               <Calendar className="h-4 w-4" />
             </div>
             <span className="text-xs font-semibold text-foreground/70 truncate">
-              {format(new Date(job.date), "MMM d, yyyy")}
+              {formattedDate}
             </span>
           </div>
           
@@ -211,18 +191,6 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
             </div>
           </div>
         </div>
-
-        {/* {isOwner && (
-          <div className="pt-4 border-t border-border/50 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span className="text-xs font-bold">{applicationCount} {applicationCount === 1 ? 'Application' : 'Applications'}</span>
-            </div>
-              {job.createdAt && !isNaN(new Date(job.createdAt).getTime())
-                ? `Posted ${format(new Date(job.createdAt), "MMM d")}`
-                : "Posted recently"}
-          </div>
-        )} */}
       </CardContent>
 
       <CardFooter className="pt-0 relative">
@@ -232,15 +200,14 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
           </Button>
         ) : (
           <Button 
-            className={`w-full rounded-xl font-bold text-xs uppercase tracking-widest h-11 transition-all duration-300 shadow-lg ${applied ? "bg-green-500 hover:bg-green-600 text-white" : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"}`}
+            className={`w-full rounded-xl font-bold text-xs uppercase tracking-widest h-11 transition-all duration-300 shadow-lg ${isJobApplied ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20" : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"}`}
             onClick={handleOpenModal}
-            disabled={job.status !== "open" || applied}
+            disabled={job.status !== "open" || isJobApplied}
           >
-
-            { applied || createMutation.isSuccess ? (
+            {isJobApplied ? (
               <span className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 animate-spin" />
-               Applied
+                <CheckCircle2 className="h-4 w-4 text-white" />
+                Applied
               </span>
             ) : (
               <span className="flex items-center gap-2">
@@ -248,30 +215,19 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
                 Apply for this Job
               </span>
             )}
-           {/*  {applied  ?(
-              <span className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4" />
-                Application Sent
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4" />
-                Apply for this Job
-              </span>
-            )} */}
           </Button>
         )}
       </CardFooter>
 
       <Dialog open={openModal} onOpenChange={setOpenModal}>
-        <DialogContent className="sm:max-w-md rounded-3xl border-none shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-md rounded-3xl border-none shadow-2xl p-0 overflow-hidden [&_[data-slot=dialog-close]]:text-white/80 [&_[data-slot=dialog-close]]:hover:text-white [&_[data-slot=dialog-close]]:top-6 [&_[data-slot=dialog-close]]:right-6">
           <div className="bg-primary p-8 text-primary-foreground relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
+            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
               <Briefcase className="h-32 w-32" />
             </div>
             <DialogHeader className="relative z-10">
-              <DialogTitle className="text-2xl font-black tracking-tighter">Submit Proposal</DialogTitle>
-              <DialogDescription className="text-primary-foreground/70 font-medium">
+              <DialogTitle className="text-2xl font-black tracking-tighter text-white">Submit Proposal</DialogTitle>
+              <DialogDescription className="text-white/80 font-medium">
                 Apply for {job.title}
               </DialogDescription>
             </DialogHeader>
@@ -279,11 +235,11 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
           
           <div className="p-8 space-y-6">
             {/* Status Messages */}
-            {applied && !createMutation.isError && (
+            {isJobApplied && !createMutation.isError && (
               <div className="p-4 border rounded-xl bg-emerald-50 border-emerald-200 flex flex-col gap-1">
                 <div className="flex items-center gap-2 font-semibold text-emerald-800">
-                   <CircleCheckBig className="h-5 w-5 text-emerald-600" />
-          Application Submitted!
+                  <CircleCheckBig className="h-5 w-5 text-emerald-600" />
+                  Application Submitted!
                 </div>
                 <p className="text-sm text-emerald-700">
                   Your application was sent successfully. The client has been notified.
@@ -295,7 +251,7 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
               <div className="p-4 border rounded-xl bg-rose-50 border-rose-200 flex flex-col gap-1">
                 <div className="flex items-center gap-2 font-semibold text-rose-800">
                   <AlertTriangle className="h-5 w-5 text-rose-600" />
-          Submission Failed
+                  Submission Failed
                 </div>
                 <p className="text-sm text-rose-700">
                   {createMutation.error.message}
@@ -322,6 +278,7 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
                   <Input 
                     id="bidAmount"
                     type="number" 
+                    min="1"
                     value={bidAmount}
                     onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : "")}
                     className="pl-8 h-12 rounded-xl bg-secondary/30 border-none focus-visible:ring-primary font-bold"
@@ -330,13 +287,19 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
               </div>
               
               <div className="space-y-1.5">
-                <Label htmlFor="message" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cover Letter / Message</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="message" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cover Letter / Message</Label>
+                  <span className={`text-[10px] font-bold ${message.length > 240 ? "text-amber-500" : "text-muted-foreground"}`}>
+                    {255 - message.length} chars left
+                  </span>
+                </div>
                 <Textarea 
                   id="message" 
+                  maxLength={255}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Why are you the perfect photographer for this job?" 
-                  className="resize-none min-h-[120px] rounded-xl bg-secondary/30 border-none focus-visible:ring-primary font-medium p-4"
+                  className="resize-none min-h-[120px] rounded-xl bg-secondary/30 border-none focus-visible:ring-primary font-medium p-4 text-sm"
                 />
               </div>
             </div>
@@ -345,21 +308,24 @@ createMutation.mutate({message:message,bidAmount:bidAmountNumber,jobId:job.id})
               <DialogClose asChild>
                 <Button variant="outline" className="w-full rounded-xl font-bold h-12 border-border/50">Cancel</Button>
               </DialogClose>
-              <Button onClick={handleConfirmApply} disabled={createMutation.isPending || applied} className="w-full rounded-xl font-bold h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20">
+              <Button 
+                onClick={handleConfirmApply} 
+                disabled={createMutation.isPending || isJobApplied} 
+                className="w-full rounded-xl font-bold h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20"
+              >
                 {createMutation.isPending ? (
-        <span className="flex items-center justify-center gap-2">
-          {/* Simple loading spinner asset */}
-          <svg className="animate-spin h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-          Sending...
-        </span>
-      ) : applied ? (
-        "Already Applied"
-      ) : (
-        "Confirm Application"
-      )}
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Sending...
+                  </span>
+                ) : isJobApplied ? (
+                  "Already Applied"
+                ) : (
+                  "Confirm Application"
+                )}
               </Button>
             </DialogFooter>
           </div>
