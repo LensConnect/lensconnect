@@ -7,7 +7,11 @@ export const users = mysqlTable('users', {
   email: varchar({ length: 255 }).notNull().unique(),
   role: mysqlEnum("role", ["client", "photographer"]).notNull(),
   passwordHash: varchar("password_hash", { length: 255 }),
-  profile_image_url: varchar({length: 255})
+  profile_image_url: varchar({length: 255}),
+  phoneNumber: varchar({ length: 20 }),
+  bio: varchar({ length: 400 }),
+  location: varchar({ length: 255 }),
+  website: varchar({ length: 255 }),
 });
 
 export const jobpost = mysqlTable('jobpost', {

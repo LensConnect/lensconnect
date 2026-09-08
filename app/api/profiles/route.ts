@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { db } from '@/app/src'
-import { sql } from 'drizzle-orm'
-import { photographer_profiles, users } from '@/app/src/db/schema'
+import { sql, eq } from 'drizzle-orm'
+import { photographer_profiles, users, profiles } from '@/app/src/db/schema'
 
 
 export async function POST(req: NextRequest) {
@@ -128,32 +128,27 @@ export async function GET(req: NextRequest) {
       }, { status: 200 })
     }
 
-    // 3. Fetch Client using unified Drizzle v2 functional API style
+    // 3. Fetch Client directly from users table
     const client = await db.query.users.findFirst({
-     where: {
+      where: {
         id: targetUserId,
         role: 'client',
-      },
-      with: {
-        profiles: true,
       },
     });
 
     if (client) {
-      const p = Array.isArray(client.profiles) ? client.profiles[0] : client.profiles;
-      
       return NextResponse.json({
         result: {
           id: client.id,
           fullname: client.fullname,
           email: client.email,
           role: client.role,
-          phoneNumber: p?.phoneNumber || '',
-          bio: p?.bio || '',
-          location: p?.location || '',
-          website: p?.website || '',
-          imageUrl: p?.imageUrl || '',
-          profile_image_url: p?.imageUrl || '',
+          phoneNumber: client.phoneNumber || '',
+          bio: client.bio || '',
+          location: client.location || '',
+          website: client.website || '',
+          imageUrl: client.profile_image_url || '',
+          profile_image_url: client.profile_image_url || '',
         }
       }, { status: 200 })
     }
@@ -179,7 +174,6 @@ export async function PATCH(req: NextRequest) {
 
     const targetUserId = Number(userId);
 
-    // 1. Fetch user's role using modern Drizzle v2 Object Syntax
     const userResult = await db.query.users.findFirst({
       where: { id: targetUserId },
       columns: { role: true },
@@ -191,50 +185,110 @@ export async function PATCH(req: NextRequest) {
 
     const dbRole = userResult.role;
 
-    // 2. Map structural whitelist parameters per database table properties
-    const allowedPhotographerFields = [
-      'fullname', 'email', 'phoneNumber', 'bio', 'location',
-      'experience', 'hourlyRate', 'specialties', 'availability',
-      'portfolio_image_url', 'profile_image_url'
-    ];
+    if (dbRole === 'photographer') {
+      const allowedFields = [
+        'fullname', 'email', 'phoneNumber', 'bio', 'location',
+        'experience', 'hourlyRate', 'specialties', 'availability',
+        'portfolio_image_url', 'profile_image_url'
+      ];
 
-    const allowedClientFields = [
-      'phoneNumber', 'imageUrl', 'bio', 'website', 'location', 'profile_image_url'
-    ];
-
-    const allowedFields = dbRole === 'photographer' ? allowedPhotographerFields : allowedClientFields;
-
-    // Sanitize inbound mutations to preserve column validation schemas
-    const sanitizedUpdates: Record<string, any> = {};
-    for (const [key, value] of Object.entries(fieldsToUpdate)) {
-      if (allowedFields.includes(key)) {
-        // Special case: If value is an array (like specialties), stringify it for MySQL JSON storage
-        sanitizedUpdates[key] = Array.isArray(value) ? JSON.stringify(value) : value;
+      const sanitizedUpdates: Record<string, any> = {};
+      for (const [key, value] of Object.entries(fieldsToUpdate)) {
+        if (allowedFields.includes(key)) {
+          if (key === 'experience' || key === 'hourlyRate') {
+            sanitizedUpdates[key] = value === '' || value === undefined || value === null ? 0 : Number(value);
+          } else if (key === 'availability') {
+            sanitizedUpdates[key] = Boolean(value);
+          } else if (key === 'specialties') {
+            sanitizedUpdates[key] = Array.isArray(value) ? JSON.stringify(value) : JSON.stringify([]);
+          } else {
+            sanitizedUpdates[key] = value;
+          }
+        }
       }
+
+      if (Object.keys(sanitizedUpdates).length === 0) {
+        return NextResponse.json({ error: 'No valid fields provided to update' }, { status: 400 });
+      }
+
+      const photoUpdates: Record<string, any> = {};
+      const profileUpdates: Record<string, any> = {};
+      
+      for (const [key, value] of Object.entries(sanitizedUpdates)) {
+        if (key === 'fullname' || key === 'email') continue;
+        if (key === 'profile_image_url') {
+          photoUpdates[key] = value;
+          profileUpdates['imageUrl'] = value;
+        } else {
+          photoUpdates[key] = value;
+        }
+      }
+
+      if (Object.keys(photoUpdates).length > 0) {
+        const existing = await db.query.photographer_profiles.findFirst({
+          where: { userId: targetUserId }
+        });
+        if (!existing) {
+          const userInfo = await db.query.users.findFirst({
+            where: { id: targetUserId },
+            columns: { fullname: true, email: true, role: true },
+          });
+          await db.insert(photographer_profiles).values({
+            userId: targetUserId,
+            fullname: userInfo?.fullname || '',
+            email: userInfo?.email || '',
+            role: 'photographer',
+            experience: photoUpdates.experience ?? 0,
+            hourlyRate: photoUpdates.hourlyRate ?? 0,
+            specialties: photoUpdates.specialties ?? [],
+            availability: photoUpdates.availability ?? true,
+            ...photoUpdates,
+          });
+        } else {
+          await db.update(photographer_profiles).set(photoUpdates).where(eq(photographer_profiles.userId, targetUserId));
+        }
+      }
+
+      if (Object.keys(profileUpdates).length > 0) {
+        const existing = await db.query.profiles.findFirst({
+          where: { userId: targetUserId }
+        });
+        if (!existing) {
+          await db.insert(profiles).values({ userId: targetUserId, ...profileUpdates });
+        } else {
+          await db.update(profiles).set(profileUpdates).where(eq(profiles.userId, targetUserId));
+        }
+      }
+
+      if (sanitizedUpdates.fullname || sanitizedUpdates.email) {
+        const userUpdates: Record<string, any> = {};
+        if (sanitizedUpdates.fullname) userUpdates.fullname = sanitizedUpdates.fullname;
+        if (sanitizedUpdates.email) userUpdates.email = sanitizedUpdates.email;
+        await db.update(users).set(userUpdates).where(eq(users.id, targetUserId));
+      }
+
+    } else {
+      const allowedFields = [
+        'fullname', 'phoneNumber', 'bio', 'website', 'location', 'profile_image_url', 'imageUrl'
+      ];
+
+      const sanitizedUpdates: Record<string, any> = {};
+      for (const [key, value] of Object.entries(fieldsToUpdate)) {
+        if (allowedFields.includes(key)) {
+          if (key === 'imageUrl') {
+            sanitizedUpdates['profile_image_url'] = value;
+          } else {
+            sanitizedUpdates[key] = value;
+          }
+        }
+      }
+
+      if (Object.keys(sanitizedUpdates).length === 0) {
+        return NextResponse.json({ error: 'No valid fields provided to update' }, { status: 400 });
+      }
+
+      await db.update(users).set(sanitizedUpdates).where(eq(users.id, targetUserId));
     }
-
-    if (Object.keys(sanitizedUpdates).length === 0) {
-      return NextResponse.json({ error: 'No valid fields provided to update' }, { status: 400 });
-    }
-
-    // 3. Routing Table Definitions safely
-    const targetTable = dbRole === 'photographer' ? 'photographer_profiles' : 'profiles';
-
-    // 4. Construct safe, parameterized SET query strings for raw SQL processing
-    const setChunks = Object.entries(sanitizedUpdates).map(([key, value]) => {
-      // sql.raw cleanly handles structural columns while values remain dynamically parameterized (?)
-      return sql`\`${sql.raw(key)}\` = ${value}`;
-    });
-
-    // Join pieces together with commas: `column1` = ?, `column2` = ?
-    const setClause = sql.join(setChunks, sql.raw(', '));
-
-    // 5. Execute raw SQL payload injection safely via db.execute
-    await db.execute(sql`
-      UPDATE \`${sql.raw(targetTable)}\`
-      SET ${setClause}
-      WHERE userId = ${targetUserId}
-    `);
 
     return NextResponse.json({
       message: 'Profile updated successfully ',
@@ -242,9 +296,10 @@ export async function PATCH(req: NextRequest) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error('Profile raw SQL update error:', error);
+    console.error('Profile update error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to update profile';
     return NextResponse.json(
-      { error: 'Failed to update profile' },
+      { error: message },
       { status: 500 }
     );
   }

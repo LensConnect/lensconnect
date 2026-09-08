@@ -301,6 +301,7 @@ export default function ProfilePage() {
         payload.specialties = profile.specialties || [];
         payload.profile_image_url = profile.profile_image_url || "";
         payload.availability = profile.availability ?? true;
+        payload.website = profile.website || "";
       }
 
       if (profile.role === "client") {
