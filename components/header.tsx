@@ -68,7 +68,7 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border py-2">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-white py-2">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 gap-4">
         <Link href="/" className="flex items-center gap-2 shrink-0 transition-transform hover:scale-105">
           <Image
