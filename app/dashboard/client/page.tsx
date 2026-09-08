@@ -8,7 +8,6 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
-import { supabase } from "@/lib/supabaseClient";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,49 +48,32 @@ type Booking = {
   };
 };
 
-export default function ClientDashboardPage() {
+export default function ClientDashboardPage({onCancel}:{ onCancel?: (bookingId: string, status:string) => void;}) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
 
-  /* const fetchBookings = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("bookings")
-      .select("*, profiles:photographer_id(full_name)")
-      .eq("client_id", user.id)
-      .order("start_time", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching bookings:", error);
-      setLoading(false);
-      return;
-    }
-    setBookings(data || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (user && user.role === "client") {
-      fetchBookings();
-    }
-  }, [user]); */
-
   const fetchBookings = async () => {
     if (!user) return;
     setLoading(true);
 
-    const response = await fetch(`/api/get_booking_client?clientId=${user.id}`)
-    const data = await response.json()
+    try {
+      const response = await fetch(`/api/get_booking_client?clientId=${user.id}`, {method: "GET", headers: {"Content-Type": "application/json"}})
+      const data = await response.json()
 
-
-    if (response.ok) {
-      setBookings(data)
+      if (response.ok && Array.isArray(data)) {
+        setBookings(data)
+      } else {
+        setBookings([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err)
+      setBookings([])
     }
     setLoading(false)
   }
+
 
   useEffect(() => {
     if (user && user.role === "client") {
@@ -99,18 +81,12 @@ export default function ClientDashboardPage() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (!isLoading) {
-      if (!user) router.push("/login");
-      else if (user.role === "photographer") router.push("/dashboard");
-    }
-  }, [user, isLoading, router]);
 
   const handleCancelBooking = async (bookingId: string, status: string) => {
     if (!window.confirm("Are you sure you want to cancel this booking request?")) return;
 
     const response = await fetch('/api/bookings', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookingId, status })
     })
     if (!response.ok) {
@@ -118,21 +94,32 @@ export default function ClientDashboardPage() {
       return
     }
     toast.success('Booking cancelled successfully')
+    onCancel?.(bookingId,status)
     fetchBookings()
 
-  };
+  }; 
 
+  
+  
+  useEffect(() => {
+    if (!isLoading) {
+      if (!user) router.push("/login");
+      else if (user.role === "photographer") router.push("/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+   
   if (isLoading || !user || user.role !== "client") return null;
 
-  const upcomingBookings = bookings.filter(
+  const upcomingBookings = Array.isArray(bookings) ? bookings.filter(
     (b) =>
-      (b.status === "confirmed" || b.status === "accepted") &&
+      b.status === "confirmed" &&
       b.start_time &&
       new Date(b.start_time).getTime() > new Date().getTime()
-  );
-  const pendingBookings = bookings.filter((b) => b.status === "pending");
-  const rejected = bookings.filter((b)=> b.status === 'rejected')
-  const completedBookings = bookings.filter((b) => b.status === "completed");
+  ) : [];
+  const pendingBookings = Array.isArray(bookings) ? bookings.filter((b) => b.status === "pending") : [];
+  const rejected = Array.isArray(bookings) ? bookings.filter((b)=> b.status === 'rejected') : [];
+  const completedBookings = Array.isArray(bookings) ? bookings.filter((b) => b.status === "completed") : [];
 
   const totalSpent = completedBookings.reduce(
     (sum, b) => sum + (Number(b.total_price) || 0),
@@ -387,11 +374,12 @@ export default function ClientDashboardPage() {
               ) : upcomingBookings.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {upcomingBookings.map((booking) => (
-                    <ClientBookingCard
+                    <ClientBookingCard 
                       key={booking.id}
                       booking={booking}
                       showCancel
-                    /* onCancel={handleCancelBooking} */
+                     
+                    onCancel={handleCancelBooking}
                     />
                   ))}
                 </div>
@@ -425,14 +413,14 @@ export default function ClientDashboardPage() {
                 </div>
               ) : pendingBookings.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
-                  {pendingBookings.map((booking) => (
-                    <ClientBookingCard
-                      key={booking.id}
-                      booking={booking}
-                      showCancel
-                    /*  onCancel={handleCancelBooking} */
-                    />
-                  ))}
+                   {pendingBookings.map((booking) => (
+                     <ClientBookingCard
+                       key={booking.id}
+                       booking={booking}
+                       showCancel
+                       onCancel={handleCancelBooking}
+                     />
+                   ))}
                 </div>
               ) : (
                 <div className="py-16 px-6 text-center rounded-3xl border-2 border-dashed border-border/80 bg-card/50 flex flex-col items-center justify-center gap-3">
@@ -487,12 +475,13 @@ function ClientBookingCard({
   booking,
   showCancel = false,
   showReview = false,
+  
   onCancel,
 }: {
   booking: Booking;
   showCancel?: boolean;
   showReview?: boolean;
-  onCancel?: (id: string) => void;
+  onCancel?: (bookingId: string, status:string) => void;
 }) {
   const statusConfig = {
     pending: {
@@ -513,19 +502,41 @@ function ClientBookingCard({
       bg: "bg-blue-500/10 border-blue-500/20",
       label: "Completed",
     },
-    accepted: {
+  /*   accepted: {
       icon: CheckCircle2,
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-500/10 border-emerald-500/20",
       label: "Accepted",
-    },
-    cancelled: {
+    }, */
+    rejected: {
       icon: XCircle,
       color: "text-rose-600 dark:text-rose-400",
       bg: "bg-rose-500/10 border-rose-500/20",
-      label: "Cancelled",
+      label: "Rejected",
     },
   };
+
+
+  const handleCancelBooking = async (bookingId: string, status: string) => {
+    if (!window.confirm("Are you sure you want to cancel this booking request?")) return;
+
+    const response = await fetch('/api/bookings', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId, status })
+    })
+    if (!response.ok) {
+      toast.error('Failed to cancel booking')
+      return
+    }
+    toast.success('Booking cancelled successfully')
+    onCancel?.(bookingId,status)
+
+  }; 
+
+  useEffect(()=>{
+    handleCancelBooking(booking.id,'rejected');
+  },[booking.id])
+
 
   const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.pending;
   const StatusIcon = status.icon;
@@ -547,6 +558,8 @@ function ClientBookingCard({
     : "Time TBD";
 
   const photographerName = booking.profiles?.full_name || "Photographer";
+
+  
 
   return (
     <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs hover:border-primary/40 transition-all space-y-5">
@@ -643,12 +656,12 @@ function ClientBookingCard({
         </Button>
 
         <div className="flex items-center gap-2">
-          {showCancel && booking.status !== "cancelled" && (
+          {showCancel && booking.status !== "rejected" && (
             <Button
               size="sm"
               variant="outline"
               className="rounded-xl text-xs font-semibold h-8.5 px-3 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-900/50 dark:hover:bg-rose-950/50"
-              onClick={() => onCancel?.(booking.id)}
+              onClick={() => onCancel?.(booking.id,'rejected')}
             >
               Cancel Request
             </Button>

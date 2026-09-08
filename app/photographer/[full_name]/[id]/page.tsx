@@ -546,7 +546,7 @@ export default function PhotographerProfilePage({
 
       {/* Commission Booking Modal */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
-        <DialogContent className="sm:max-w-lg bg-card text-foreground border-border/80 rounded-3xl p-6 sm:p-8 shadow-xl">
+        <DialogContent className="sm:max-w-lg bg-card text-foreground border-border/80 rounded-3xl p-6 sm:p-8 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 50 }}>
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-xl font-bold tracking-tight">Request Photography Session</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">

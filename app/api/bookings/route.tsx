@@ -56,15 +56,32 @@ export async function POST(req: NextRequest) {
         console.error("Booking creation error:", error);
         return NextResponse.json({ error: "Failed to create booking" }, { status: 500 });
     }
+}
 
 
+export async function GET(){
+    const token = (await cookies()).get("session")?.value;
+    const user: SessionPayload | null = token ? await verifyToken(token) : null;
+
+    if (!user ) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const bookings = await db.execute(sql`
+            SELECT * FROM booking WHERE clientId = ${user.id} AND status = 'accepted'
+        `);
+
+        return NextResponse.json({ bookings, status: 200, success: true });
+    } catch (error) {
+        console.error("Booking retrieval error:", error);
+        return NextResponse.json({ error: "Failed to retrieve bookings" }, { status: 500 });
+    }
 }
 
 export async function  PATCH(req: NextRequest){
     
     const {bookingId, status} = await req.json();
-
-   
 
     const token = (await cookies()).get("session")?.value;
     const user: SessionPayload | null = token ? await verifyToken(token) : null;

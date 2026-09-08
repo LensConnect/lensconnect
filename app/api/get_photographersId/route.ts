@@ -16,7 +16,7 @@ export async function GET(req:NextRequest) {
         }
 
 
-        const [data] = await db.execute(sql`SELECT * FROM photographer_profiles WHERE id = ${id}`);
+        const [data] = await db.execute(sql`SELECT * FROM photographer_profiles WHERE userId = ${id} OR id = ${id}`);
 
         return NextResponse.json({data , error:'' ,status:200 , success:true});
 

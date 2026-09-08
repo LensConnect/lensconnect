@@ -11,7 +11,7 @@ interface PhotographerCardProps {
 
 export function PhotographerCard({ photographer }: PhotographerCardProps) {
   return (
-    <Link href={`/photographer/${photographer.userId}`}>
+    <Link href={`/photographer/${encodeURIComponent(photographer.user.fullname || photographer.fullname || "creator")}/${photographer.userId}`}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full">
         <div className="relative h-48 overflow-hidden">
           <img

@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
             SELECT b.*, u.fullname as client_name, u.email as client_email
             FROM booking b
             LEFT JOIN users u ON b.clientId = u.id
-            LEFT JOIN photographer_profiles p ON photographerId = p.id
-            WHERE b.photographerId = ${id} OR userId = ${id};
+            LEFT JOIN photographer_profiles p ON b.photographerId = p.id
+            WHERE b.photographerId = ${id};
         `);
 
         if (!Array.isArray(data)) {

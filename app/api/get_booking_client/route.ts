@@ -7,12 +7,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const clientId = searchParams.get("clientId") || searchParams.get("id");
+    const status = searchParams.get("status")
 
     if (!clientId) {
       return NextResponse.json([]);
     }
 
-    const [rows] = await db.execute(
+    
+    
+
+      const [rows] = await db.execute(
       sql` 
       SELECT 
         b.id,
@@ -31,7 +35,7 @@ export async function GET(req: NextRequest) {
         p.email as photographer_email
       FROM booking b
       LEFT JOIN users p ON b.photographerId = p.id
-      WHERE b.clientId = ${clientId}`
+      WHERE b.clientId = ${clientId} ${status ? sql`AND b.status = ${status}` : sql``}`
     );
 
     const bookingList = Array.isArray(rows)

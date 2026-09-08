@@ -9,7 +9,6 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
-import { supabase } from "@/lib/supabaseClient";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +49,7 @@ type Booking = {
   startTime: string;
   startDate: string;
   durationHours: number;
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "accepted" | "rejected";
+  status: "pending" | "confirmed" | "completed"  | "rejected";
   totalPrice: number;
   type: string;
   location: string;
@@ -107,13 +106,13 @@ export default function PhotographerDashboardPage() {
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status: newStatus })
-        .eq("id", id);
+      const response = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: id, status: newStatus }),
+      });
 
-      if (error) {
-        console.error("Error updating status:", error);
+      if (!response.ok) {
         toast.error("Failed to update status");
         return;
       }
@@ -126,13 +125,13 @@ export default function PhotographerDashboardPage() {
 
   const upcomingBookings = bookings.filter(
     (b) =>
-      (b.status === "confirmed" || b.status === "accepted") &&
+      (b.status === "confirmed") &&
       b.startDate &&
       new Date(b.startDate).getTime() >= new Date().setHours(0, 0, 0, 0)
   );
   const pendingBookings = bookings.filter((b) => b.status === "pending");
   const completedBookings = bookings.filter((b) => b.status === "completed");
-
+  const rejected = bookings.filter((b)=> b.status === 'rejected').length;
   const totalEarnings = completedBookings.reduce(
     (sum, b) => sum + (Number(b.totalPrice) || 0),
     0
@@ -689,7 +688,7 @@ function PhotographerBookingCard({
             </>
           )}
 
-          {(booking.status === "confirmed" || booking.status === "accepted") && (
+          {booking.status === "confirmed" && (
             <Button
               size="sm"
               onClick={() => onStatusUpdate?.(booking.id, "completed")}
