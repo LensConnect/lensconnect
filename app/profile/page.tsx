@@ -3,7 +3,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { motion, AnimatePresence } from "framer-motion";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+import { generateReactHelpers } from "@uploadthing/react";
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
+
+const { useUploadThing } = generateReactHelpers<OurFileRouter>();
+import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +32,7 @@ import {
     Loader2,
     Image as ImageIcon
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+
 
 interface ProfileData {
     id: string;
@@ -46,12 +52,12 @@ interface ProfileData {
 }
 
 interface PortfolioItem {
-    id: string;
-    title: string;
-    description: string;
-    image_url: string[];
-    category: string[];
-    location: string;
+  id: number | string;
+  title: string;
+  description?: string;
+  location?: string; 
+  category?: string[];
+  image_url?: string[];
 }
 
 const AVAILABLE_SPECIALTIES = [
@@ -67,8 +73,35 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
 
-    // Image Upload Ref
-    const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { startUpload } = useUploadThing("profileImage", {
+    onClientUploadComplete: async (res:any) => {
+      if (res && res.length > 0) {
+        const uploadedUrl = res[0].url;
+        setProfile((prev) => {
+          if (!prev) return null;
+          return { ...prev, profile_image_url: uploadedUrl };
+        });
+        setIsDirty(true);
+
+        const dbResult = await saveProfileImage(Number(user?.id), uploadedUrl);
+        if (!dbResult.success) {
+          toast.error(dbResult.error || "Failed to save profile image to database.");
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+        toast.success("Profile photo updated successfully!");
+      }
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    onUploadError: (error) => {
+      toast.error(error.message || "Failed to upload image.");
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+  });
 
     const { isLoading, error: profileError } = useQuery({
         queryKey: ['profile'],
@@ -129,35 +162,24 @@ export default function ProfilePage() {
         });
     };
 
-    // Handle Image Upload
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !profile) return;
+  // Avatar Image Upload via UploadThing & Database Sync
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile || !user?.id) return;
 
-        setUploading(true);
-        try {
-            const filePath = `${profile.id}/${Date.now()}_${file.name}`;
-            const { error: uploadError } = await supabase.storage
-                .from("profile_image")
-                .upload(filePath, file);
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
 
-            if (uploadError) throw uploadError;
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image size must be under 4MB");
+      return;
+    }
 
-            const { data: { publicUrl } } = supabase.storage
-                .from("profile_image")
-                .getPublicUrl(filePath);
-
-            setProfile(prev => prev ? ({ ...prev, profile_image_url: publicUrl }) : null);
-            await supabase.from("profiles").update({ profile_image_url: publicUrl }).eq('id', profile.id);
-            toast.success("Profile photo updated");
-
-        } catch (error) {
-            console.error("Error uploading image:", error);
-            toast.error("Failed to upload image.");
-        } finally {
-            setUploading(false);
-        }
-    };
+    setUploading(true);
+    await startUpload([file]);
+  };
 
     // Save All Changes
     const handleSave = async () => {
