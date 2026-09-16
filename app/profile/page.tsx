@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Image from 'next/image';
 
 import { generateReactHelpers } from "@uploadthing/react";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
@@ -463,11 +464,13 @@ export default function ProfilePage() {
             {/* Avatar with Camera Trigger */}
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
               <div className="relative group">
-                <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-2xl p-1 bg-card ring-4 ring-background shadow-md overflow-hidden flex items-center justify-center">
+                <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full  p-1 bg-card ring-4 ring-background shadow-md overflow-hidden flex items-center justify-center">
                   {profile.profile_image_url ? (
-                    <img
+                    <Image
                       src={profile.profile_image_url}
                       alt={profile.fullname}
+                      width={500}
+                      height={500}
                       className="h-full w-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
@@ -481,7 +484,7 @@ export default function ProfilePage() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="absolute inset-1 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1 text-white backdrop-blur-[2px] cursor-pointer"
+                    className="absolute inset-1 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1 text-white backdrop-blur-[2px] cursor-pointer"
                     title="Change profile photo"
                   >
                     {uploading ? (

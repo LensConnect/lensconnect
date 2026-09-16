@@ -72,6 +72,7 @@ interface FormData {
   type: string;
   location: string;
   message: string;
+  totalPrice: number;
 }
 
 interface FormErrors {
@@ -81,6 +82,7 @@ interface FormErrors {
   type?: string;
   location?: string;
   message?: string;
+  totalPrice?: number; 
 }
 
 interface Review {
@@ -120,6 +122,7 @@ export default function PhotographerProfilePage({
     type: "",
     location: "",
     message: "",
+    totalPrice: 0
   });
 
   const validateForm = (): FormErrors => {
@@ -128,6 +131,7 @@ export default function PhotographerProfilePage({
     if (!formData.startTime) errors.startTime = "Booking time is required";
     if (!formData.durationHours || formData.durationHours < 1) errors.durationHours = "Duration is required";
     if (!formData.type) errors.type = "Shoot style is required";
+    if(!formData.totalPrice || formData.totalPrice > 0)  errors.totalPrice = 0;
     if (!formData.location?.trim()) errors.location = "Location is required";
     return errors;
   };
@@ -229,7 +233,7 @@ export default function PhotographerProfilePage({
 
       toast.success(data.message || "Commission request sent to creator!");
       setIsBookingOpen(false);
-      setFormData({ startDate: "", durationHours: 2, type: "", location: "", message: "", startTime: "" });
+      setFormData({ startDate: "", durationHours: 2, type: "", location: "", message: "", startTime: "" , totalPrice});
     } catch (err) {
       console.error("Error submitting booking:", err);
       toast.error("Failed to send booking request.");
@@ -268,6 +272,8 @@ export default function PhotographerProfilePage({
         <img
           src={coverImage}
           alt={profile.fullname}
+         
+
           className="w-full h-full object-cover brightness-[0.55] transition-transform duration-700"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
@@ -650,6 +656,23 @@ export default function PhotographerProfilePage({
                 />
               </div>
               {formErrors.location && <p className="text-[11px] text-destructive">{formErrors.location}</p>}
+            </div>
+
+            
+              
+            <div className="space-y-1.5">
+                <Label htmlFor="message" className="text-xs font-semibold text-foreground">
+                Estimated price
+              </Label>
+              <input
+                id="totalPrice"
+                name="totalPrice"
+               
+                placeholder="Enter your budgeted price or estimate"
+                value={formData.totalPrice}
+                onChange={handleInputChange}
+                className="rounded-xl bg-background border-border/80 text-xs resize-none"
+              />
             </div>
 
             <div className="space-y-1.5">
