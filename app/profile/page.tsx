@@ -7,7 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { supabase } from "@/lib/supabaseClient";
+import { generateReactHelpers } from "@uploadthing/react";
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
+
+const { useUploadThing } = generateReactHelpers<OurFileRouter>();
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
 import { saveProfileImage } from "@/app/actions/profile";
@@ -107,6 +110,34 @@ export default function ProfilePage() {
   const [isDirty, setIsDirty] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { startUpload } = useUploadThing("profileImage", {
+    onClientUploadComplete: async (res) => {
+      if (res && res.length > 0) {
+        const uploadedUrl = res[0].url;
+        setProfile((prev) => {
+          if (!prev) return null;
+          return { ...prev, profile_image_url: uploadedUrl };
+        });
+        setIsDirty(true);
+
+        const dbResult = await saveProfileImage(Number(user?.id), uploadedUrl);
+        if (!dbResult.success) {
+          toast.error(dbResult.error || "Failed to save profile image to database.");
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+        toast.success("Profile photo updated successfully!");
+      }
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    onUploadError: (error) => {
+      toast.error(error.message || "Failed to upload image.");
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+  });
 
   // Authentication redirect
   useEffect(() => {
@@ -215,7 +246,7 @@ export default function ProfilePage() {
     setIsDirty(true);
   };
 
-  // Avatar Image Upload via Supabase & Database Sync
+  // Avatar Image Upload via UploadThing & Database Sync
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile || !user?.id) return;
@@ -225,54 +256,13 @@ export default function ProfilePage() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be under 5MB");
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image size must be under 4MB");
       return;
     }
 
-    try {
-      setUploading(true);
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("profile_image")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from("profile_image")
-        .getPublicUrl(filePath);
-
-      const publicUrl = publicUrlData.publicUrl;
-
-      setProfile((prev) => {
-        if (!prev) return null;
-        return { ...prev, profile_image_url: publicUrl };
-      });
-      setIsDirty(true);
-
-      // Persist to database immediately
-     /*  const result = await saveProfileImage(user.id, publicUrl);
-      if (!result.success) {
-        // Fallback update
-        await supabase
-          .from("profiles")
-          .update({ imageUrl: publicUrl, profile_image_url: publicUrl })
-          .eq("userId", user.id);
-      } */
-
-      queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
-      toast.success("Profile photo updated successfully!");
-    } catch (error: any) {
-      console.error("Error uploading image:", error);
-      toast.error(error.message || "Failed to upload image.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    setUploading(true);
+    await startUpload([file]);
   };
 
   // Save full profile changes
@@ -338,7 +328,6 @@ export default function ProfilePage() {
     if (!profile) return 0;
     let score = 0;
     let total = 5;
-
     if (profile.fullname) score++;
     if (profile.profile_image_url) score++;
     if (profile.bio) score++;
