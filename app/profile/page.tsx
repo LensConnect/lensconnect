@@ -15,7 +15,7 @@ const { useUploadThing } = generateReactHelpers<OurFileRouter>();
 import { useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/header";
 import { saveProfileImage } from "@/app/actions/profile";
-
+import { NairaSign } from "@/components/NairaSign";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,7 +49,9 @@ import {
   ChevronRight,
   AlertCircle,
   RefreshCw,
+  
 } from "lucide-react";
+
 
 type UserRole = "photographer" | "client";
 
@@ -566,7 +568,7 @@ export default function ProfilePage() {
                   {isPhotographer && Number(profile.hourlyRate) > 0 && (
                     <span className="flex items-center gap-1 font-medium text-foreground">
                       <DollarSign className="h-3.5 w-3.5 text-primary" />
-                      ${profile.hourlyRate}/hr
+                      {profile.hourlyRate}/hr
                     </span>
                   )}
                 </div>
@@ -785,10 +787,10 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label htmlFor="hourlyRate" className="text-xs font-semibold text-foreground">
-                          Hourly Rate ($ USD)
+                          Hourly Rate (₦ NGN)
                         </Label>
                         <div className="relative">
-                          <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                          <NairaSign className="-mt-1.5 absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                           <Input
                             id="hourlyRate"
                             name="hourlyRate"

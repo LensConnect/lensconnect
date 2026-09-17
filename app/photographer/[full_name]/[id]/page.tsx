@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -300,9 +301,11 @@ export default function PhotographerProfilePage({
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
             <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-2xl p-1 bg-card ring-4 ring-background shadow-md overflow-hidden shrink-0 flex items-center justify-center">
               {profile.profile_image_url ? (
-                <img
+                <NextImage
                   src={profile.profile_image_url}
                   alt={profile.fullname}
+                  width={300}
+                  height={300}
                   className="h-full w-full object-cover rounded-xl"
                 />
               ) : (

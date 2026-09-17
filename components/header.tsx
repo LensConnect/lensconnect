@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,14 +34,20 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { useAuth } from "@/lib/auth-context";
 
+import { use, useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+interface profileImg{
+  profile_image_url:string;
+}
 export function Header() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
-
+  const [profile,setProfileImg ] = useState<profileImg | null>( null)
+  const [isLoading , setIsLoading] = useState(false)
   const isActiveLink = (href: string) => {
     return pathname === href || (href !== "/" && pathname.startsWith(href));
   };
@@ -66,6 +73,31 @@ export function Header() {
     { href: "/applications", label: "Applications", roles: ["photographer"], icon: Briefcase },
     { href: "/messages", label: "Messages", roles: ["client", "photographer"], icon: MessageSquare },
   ];
+
+  
+  const fetchProfileImage = async()=>{
+     if (!user?.id) return null;
+     const response = await fetch(`/api/profiles?userId=${user.id}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if(!response.ok){
+        throw new Error ('No profileImage found')
+      }
+
+
+
+      const data = await response.json();
+      setProfileImg({
+        profile_image_url: data.result?.profile_image_url
+      })
+      }
+
+      useEffect(()=>{
+        fetchProfileImage()
+      },[user?.id])
+ 
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-white py-2">
@@ -109,14 +141,29 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-10 w-10 rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all"
+               {profile?.profile_image_url ? (
+                <div className="h-10 w-10 overflow-hidden rounded-full">
+                <Image 
+                src={profile?.profile_image_url}
+                alt={`${displayName}'s profile image`}
+                width={40}
+                height={40}
+                quality={100}
+                className="h-10 w-10 rounded-full object-cover"
+                />
+                
+                </div>
+               ) : (
+                 <Button
+                 
+                  className="relative h-10 w-10 rounded-full bg-gray-100"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full  text-sm font-semibold text-primary">
                     {displayName.charAt(0).toUpperCase()}
                   </div>
                 </Button>
+               )}
+               
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 mt-2 rounded-2xl shadow-xl border-border/50">
                 <div className="flex items-center justify-start gap-2 p-3">
