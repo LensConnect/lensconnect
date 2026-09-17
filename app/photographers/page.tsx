@@ -58,6 +58,8 @@ export default function SearchPage() {
   const [aiSearching, setAiSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [photographers, setPhotographers] = useState<PhotographerProfile[]>([]);
+  const maxRate = Math.max(0, ...photographers.map((photographer) => photographer.hourlyRate));
+  const sliderMax = Math.max(5000, Math.ceil(maxRate / 5000) * 5000);
 
   const toggleSpecialty = (specialty: string) => {
     setSelectedSpecialties((prev) =>
@@ -108,6 +110,13 @@ export default function SearchPage() {
     fetchPhotographers();
   }, []);
 
+  useEffect(() => {
+    setPriceRange((currentRange) => [
+      currentRange[0],
+      currentRange[1] === 5000 || currentRange[1] > sliderMax ? sliderMax : currentRange[1],
+    ]);
+  }, [sliderMax]);
+
   const filteredPhotographers = useMemo(() => {
     const filtered = photographers.filter((photographer) => {
       if (searchQuery && !photographer.fullname.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -116,7 +125,8 @@ export default function SearchPage() {
         const hasMatchingSpecialty = photographer.specialties.some((s) => selectedSpecialties.includes(s));
         if (!hasMatchingSpecialty) return false;
       }
-      if (photographer.hourlyRate < priceRange[0] || photographer.hourlyRate > priceRange[1]) return false;
+      if (photographer.hourlyRate < priceRange[0]) return false;
+      if (priceRange[1] < sliderMax && photographer.hourlyRate > priceRange[1]) return false;
       if ((photographer.rating || 0) < Number.parseFloat(minRating)) return false;
       return true;
     });
@@ -135,7 +145,7 @@ export default function SearchPage() {
     });
 
     return filtered;
-  }, [photographers, searchQuery, location, selectedSpecialties, priceRange, minRating, sortBy]);
+  }, [photographers, searchQuery, location, selectedSpecialties, priceRange, minRating, sortBy, sliderMax]);
 
   const search = async (customPrompt?: string) => {
     const queryToSearch = customPrompt ?? naturalLanguageInput ?? searchQuery;
@@ -180,7 +190,7 @@ export default function SearchPage() {
     setSearchQuery("");
     setLocation("");
     setSelectedSpecialties([]);
-    setPriceRange([0, 5000]);
+    setPriceRange([0, sliderMax]);
     setMinRating("0");
     setNaturalLanguageInput("");
   };
@@ -279,7 +289,7 @@ export default function SearchPage() {
                     Filters
                   </span>
                 </div>
-                {(searchQuery || location || selectedSpecialties.length > 0 || priceRange[1] < 5000) && (
+                {(searchQuery || location || selectedSpecialties.length > 0 || priceRange[1] < sliderMax) && (
                   <button
                     type="button"
                     onClick={handleResetFilters}
@@ -359,13 +369,13 @@ export default function SearchPage() {
                 <div className="flex items-center justify-between text-xs">
                   <Label className="font-semibold text-foreground">Max Hourly Rate</Label>
                   <span className="font-mono font-bold text-primary">
-                    ${priceRange[0]} - ${priceRange[1]}
+                    ₦{priceRange[0].toLocaleString()} - {priceRange[1] >= sliderMax ? "Any price" : `₦${priceRange[1].toLocaleString()}`}
                   </span>
                 </div>
                 <Slider
-                  defaultValue={[0, 5000]}
-                  max={5000}
-                  step={25}
+                  min={0}
+                  max={sliderMax}
+                  step={500}
                   value={priceRange}
                   onValueChange={setPriceRange}
                   className="[&_[role=slider]]:bg-primary [&_[role=slider]]:border-primary"

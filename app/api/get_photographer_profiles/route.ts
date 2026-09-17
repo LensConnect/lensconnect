@@ -16,6 +16,21 @@ interface PhotographerRow {
     availability: boolean | number;
 }
 
+function parseSpecialties(value: PhotographerRow["specialties"]): string[] {
+    if (Array.isArray(value)) return value;
+
+    let parsed: unknown = value;
+    for (let attempt = 0; attempt < 2 && typeof parsed === "string"; attempt++) {
+        try {
+            parsed = JSON.parse(parsed);
+        } catch {
+            return [];
+        }
+    }
+
+    return Array.isArray(parsed) ? parsed : [];
+}
+
 export async function GET(req: NextRequest) {
     try {
         // 2. Fetch all required fields directly from the database string
@@ -47,10 +62,7 @@ export async function GET(req: NextRequest) {
             fullname: row.fullname || '',
             hourlyRate: Number(row.hourlyRate) || 0,
             location: String(row.location) || '',
-            // Safely parse JSON strings if the driver returns it as text
-            specialties: typeof row.specialties === 'string' 
-                ? JSON.parse(row.specialties) 
-                : row.specialties || [],
+            specialties: parseSpecialties(row.specialties),
             profile_image_url: row.profile_image_url || '',
             availability: Boolean(row.availability),
             role: row.role || 'photographer',
