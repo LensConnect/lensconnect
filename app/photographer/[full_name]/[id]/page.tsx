@@ -34,6 +34,7 @@ import {
   Briefcase,
   Share2,
   ArrowLeft,
+  Banknote ,
   ShieldCheck,
 } from "lucide-react";
 
@@ -644,7 +645,7 @@ export default function PhotographerProfilePage({
                 Shoot Location <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <MapPin className=" -mt-2  absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   id="location"
                   name="location"
@@ -659,21 +660,41 @@ export default function PhotographerProfilePage({
             </div>
 
             
-              
             <div className="space-y-1.5">
-                <Label htmlFor="message" className="text-xs font-semibold text-foreground">
+              <Label htmlFor="totalPrice" className="text-xs font-semibold text-foreground">
+                 Budget <span className="text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <Banknote className=" -mt-2 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  id="totalPrice"
+                  name="totalPrice"
+                  placeholder="Enter your budget"
+                  required
+                  type="number"
+                  value={formData.totalPrice}
+                  onChange={handleInputChange}
+                  className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs"
+                />
+              </div>
+              {formErrors.location && <p className="text-[11px] text-destructive">{formErrors.location}</p>}
+            </div>
+
+            
+              
+            {/* <div className="space-y-1.5">
+                <Label htmlFor="totalPrice" className="text-xs font-semibold text-foreground">
                 Estimated price
               </Label>
               <input
                 id="totalPrice"
                 name="totalPrice"
-               
                 placeholder="Enter your budgeted price or estimate"
                 value={formData.totalPrice}
                 onChange={handleInputChange}
-                className="rounded-xl bg-background border-border/80 text-xs resize-none"
+                className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs w-full"
               />
-            </div>
+            </div> */}
 
             <div className="space-y-1.5">
               <Label htmlFor="message" className="text-xs font-semibold text-foreground">
