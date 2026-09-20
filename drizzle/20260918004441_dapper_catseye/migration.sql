@@ -1,0 +1,1 @@
+ALTER TABLE `chatMessage` MODIFY COLUMN `content` varchar(20000) NOT NULL;

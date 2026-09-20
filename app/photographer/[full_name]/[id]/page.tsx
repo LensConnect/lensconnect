@@ -37,6 +37,11 @@ import {
   ArrowLeft,
   Banknote ,
   ShieldCheck,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Tag,
+  Play,
 } from "lucide-react";
 
 interface Profile {
@@ -99,6 +104,15 @@ interface Review {
   };
 }
 
+interface LightboxSlide {
+  src: string;
+  alt: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  category?: string[];
+}
+
 export default function PhotographerProfilePage({
   params,
 }: {
@@ -115,6 +129,74 @@ export default function PhotographerProfilePage({
   const [error, setError] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Lightbox / Slideshow State
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSlides, setLightboxSlides] = useState<LightboxSlide[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+
+  const normalizeImages = (image_url: string | string[]): string[] => {
+    if (Array.isArray(image_url)) return image_url.filter(Boolean);
+    if (typeof image_url === "string" && image_url) return [image_url];
+    return [];
+  };
+
+  const buildSlides = (item: PortfolioItem): LightboxSlide[] => {
+    const images = normalizeImages(item.image_url);
+    return images.map((src) => ({
+      src,
+      alt: item.title,
+      title: item.title,
+      description: item.description,
+      location: item.location,
+      category: item.category,
+    }));
+  };
+
+  const openLightbox = (slides: LightboxSlide[], startAt = 0) => {
+    setLightboxSlides(slides);
+    setCurrentSlide(startAt);
+    setLightboxOpen(true);
+  };
+
+  const openItemLightbox = (item: PortfolioItem) => {
+    openLightbox(buildSlides(item), 0);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxSlides([]);
+    setCurrentSlide(0);
+  };
+
+  const nextImage = () => {
+    if (lightboxSlides.length <= 1) return;
+    setCurrentSlide((prev) => (prev + 1) % lightboxSlides.length);
+  };
+
+  const prevImage = () => {
+    if (lightboxSlides.length <= 1) return;
+    setCurrentSlide((prev) => (prev - 1 + lightboxSlides.length) % lightboxSlides.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart || lightboxSlides.length <= 1) {
+      setTouchStart(null);
+      return;
+    }
+    const dx = e.changedTouches[0].clientX - touchStart.x;
+    const dy = e.changedTouches[0].clientY - touchStart.y;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (dx > 0) prevImage();
+      else nextImage();
+    }
+    setTouchStart(null);
+  };
 
   // Form State
   const [formData, setFormData] = useState<FormData>({
@@ -174,6 +256,25 @@ export default function PhotographerProfilePage({
 
     fetchData();
   }, [id]);
+
+  // Keyboard navigation & body scroll lock for lightbox
+  useEffect(() => {
+    if (!lightboxOpen) return;
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") prevImage();
+      if (e.key === "ArrowRight") nextImage();
+      if (e.key === "Escape") closeLightbox();
+    };
+    document.addEventListener("keydown", handleKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [lightboxOpen, lightboxSlides, currentSlide]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -438,38 +539,103 @@ export default function PhotographerProfilePage({
                   <h2 className="text-base font-bold text-foreground">Selected Works</h2>
                   <p className="text-xs text-muted-foreground">Recent creative collections & client projects.</p>
                 </div>
-                <Badge variant="outline" className="text-xs font-mono font-semibold">
-                  {portfolioItems.length} Collections
-                </Badge>
+                <div className="flex items-center gap-2.5">
+                  {portfolioItems.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        openLightbox(
+                          portfolioItems.flatMap((item) => buildSlides(item)),
+                          0
+                        )
+                      }
+                      className="rounded-xl text-xs font-semibold h-8 px-3 border border-border/60 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                    >
+                      <Play className="h-3.5 w-3.5 mr-1 text-primary" />
+                      <span>Slideshow All</span>
+                    </Button>
+                  )}
+                  <Badge variant="outline" className="text-xs font-mono font-semibold">
+                    {portfolioItems.length} Collections
+                  </Badge>
+                </div>
               </div>
 
               {portfolioItems.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {portfolioItems.map((item) => {
-                    const preview = Array.isArray(item.image_url) ? item.image_url[0] : item.image_url;
+                    const images = normalizeImages(item.image_url);
+                    const preview = images[0];
+                    const hasMultiple = images.length > 1;
                     return (
                       <div
                         key={item.id}
-                        className="group relative aspect-[4/3] rounded-2xl overflow-hidden border border-border/60 bg-muted shadow-xs hover:border-primary/40 transition-all"
+                        className="group relative rounded-2xl overflow-hidden border border-border/60 bg-muted shadow-xs hover:border-primary/40 hover:shadow-md transition-all duration-300"
                       >
-                        {preview ? (
-                          <img
-                            src={preview}
-                            alt={item.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            <ImageIcon className="h-8 w-8 opacity-40" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90" />
-                        <div className="absolute bottom-0 left-0 right-0 p-3.5 text-white">
-                          <h4 className="text-sm font-bold truncate">{item.title}</h4>
-                          {item.description && (
-                            <p className="text-xs text-white/75 line-clamp-1 mt-0.5">{item.description}</p>
+                        <div className="aspect-[4/3] relative">
+                          {preview ? (
+                            <img
+                              src={preview}
+                              alt={item.title}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              <ImageIcon className="h-8 w-8 opacity-40" />
+                            </div>
                           )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-95" />
+                          {hasMultiple && (
+                            <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+                              {images.length} photos
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 p-3.5 text-white">
+                            <h4 className="text-sm font-bold truncate">{item.title}</h4>
+                            {item.description && (
+                              <p className="text-xs text-white/75 line-clamp-2 mt-0.5">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-3 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            {item.location ? (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3 text-primary" />
+                                <span>{item.location}</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/50">Location not set</span>
+                            )}
+                            {item.category && item.category.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {item.category.map((c) => (
+                                  <Badge
+                                    key={c}
+                                    variant="secondary"
+                                    className="px-1.5 py-0 rounded-md text-[9px] font-medium bg-muted text-foreground border border-border/60"
+                                  >
+                                    {c}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openItemLightbox(item)}
+                            className="w-full h-8 rounded-lg text-xs font-semibold border-border/80 hover:bg-primary/5 hover:border-primary/30 group-hover:bg-primary/10 transition-colors"
+                          >
+                            <ImageIcon className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                            <span>View Gallery</span>
+                          </Button>
                         </div>
                       </div>
                     );
@@ -482,6 +648,150 @@ export default function PhotographerProfilePage({
                 </div>
               )}
             </section>
+
+            {/* Fullscreen Lightbox / Slide Viewer */}
+            <AnimatePresence>
+              {lightboxOpen && lightboxSlides.length > 0 && (
+                <motion.div
+                  key="lightbox-backdrop"
+                  className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                >
+                  {/* Close */}
+                  <motion.button
+                    key="lb-close"
+                    onClick={closeLightbox}
+                    className="absolute top-4 right-4 z-10 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <X className="h-5 w-5" />
+                  </motion.button>
+
+                  {/* Counter */}
+                  <motion.div
+                    key="lb-counter"
+                    className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-xs font-mono text-white/50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {currentSlide + 1} / {lightboxSlides.length}
+                  </motion.div>
+
+                  {/* Prev */}
+                  {lightboxSlides.length > 1 && (
+                    <motion.button
+                      key="lb-prev"
+                      onClick={prevImage}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/5 hover:bg-white/15 text-white border border-white/10 transition-colors"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </motion.button>
+                  )}
+
+                  {/* Main Image */}
+                  <motion.div
+                    key={`lb-image-${currentSlide}`}
+                    className="max-w-[90vw] max-h-[75vh] flex items-center justify-center"
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <img
+                      src={lightboxSlides[currentSlide]?.src}
+                      alt={lightboxSlides[currentSlide]?.alt}
+                      className="max-w-full max-h-[75vh] object-contain"
+                    />
+                  </motion.div>
+
+                  {/* Next */}
+                  {lightboxSlides.length > 1 && (
+                    <motion.button
+                      key="lb-next"
+                      onClick={nextImage}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/5 hover:bg-white/15 text-white border border-white/10 transition-colors"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </motion.button>
+                  )}
+
+                  {/* Info Bar */}
+                  <motion.div
+                    key="lb-info"
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 pb-5 px-4 text-white"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                  >
+                    <h3 className="text-lg font-bold">
+                      {lightboxSlides[currentSlide]?.title}
+                    </h3>
+                    {lightboxSlides[currentSlide]?.description && (
+                      <p className="text-sm text-white/65 mt-1 line-clamp-2">
+                        {lightboxSlides[currentSlide].description}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-white/50">
+                      {lightboxSlides[currentSlide]?.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-primary/60" />
+                          {lightboxSlides[currentSlide].location}
+                        </span>
+                      )}
+                      {lightboxSlides[currentSlide]?.category &&
+                        lightboxSlides[currentSlide].category!.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Tag className="h-3 w-3 text-primary/60" />
+                            {lightboxSlides[currentSlide].category!.join(", ")}
+                          </span>
+                        )}
+                    </div>
+                  </motion.div>
+
+                  {/* Thumbnail Strip */}
+                  {lightboxSlides.length > 1 && (
+                    <motion.div
+                      key="lb-thumbnails"
+                      className="absolute bottom-32 left-1/2 -translate-x-1/2 flex gap-1.5 overflow-x-auto px-2 py-1.5 rounded-lg bg-black/40 border border-white/10"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                    >
+                      {lightboxSlides.map((slide, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentSlide(idx)}
+                          className={`shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
+                            idx === currentSlide
+                              ? "border-primary opacity-100"
+                              : "border-white/30 opacity-50 hover:opacity-80"
+                          }`}
+                        >
+                          <img
+                            src={slide.src}
+                            alt={slide.alt}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Sticky Sidebar Info & Deliverables */}

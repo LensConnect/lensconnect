@@ -1,4 +1,4 @@
-import { int, mysqlTable, varchar, mysqlEnum, date, timestamp, boolean, json, time } from 'drizzle-orm/mysql-core';
+import { int, mysqlTable, varchar, mysqlEnum, date, timestamp, boolean, json, time, text } from 'drizzle-orm/mysql-core';
 import { defineRelations } from 'drizzle-orm';
 
 export const users = mysqlTable('users', {
@@ -59,6 +59,15 @@ export const photographer_profiles = mysqlTable("photographer_profiles", {
   
 });
 
+export const chatMessage = mysqlTable("chatMessage",{
+  id: int().primaryKey().autoincrement(),
+  senderId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),
+  recipientId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),
+  content: text().notNull(),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  is_read: boolean().default(false),
+})
+
 export const booking = mysqlTable("booking", {
   id: int().primaryKey().autoincrement(),
   clientId: int().notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -108,7 +117,8 @@ export const photographer_portfolios = mysqlTable("photographer_portfolios", {
   
 })
 
-// ✅ FIX: The export MUST be named exactly 'relations'
+export type MessageSelect = typeof chatMessage.$inferInsert
+export type MessageInsert = typeof chatMessage.$inferInsert;
 export const relations = defineRelations(
   { users, photographer_profiles, profiles },
   (r) => ({
