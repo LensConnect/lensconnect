@@ -1,0 +1,2 @@
+ALTER TABLE `photographer_profiles` MODIFY COLUMN `specialties` json DEFAULT ('"[]"');--> statement-breakpoint
+ALTER TABLE `photographer_profiles` MODIFY COLUMN `portfolio_image_url` json DEFAULT ('"[]"');

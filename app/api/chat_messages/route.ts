@@ -1,7 +1,7 @@
 import {NextResponse, NextRequest} from "next/server";
 import { db } from "@/app/src"
 import { sql } from "drizzle-orm";
-import { chatMessage } from "@/app/src/db/schema";
+
 import { cookies } from "next/headers";
 import { verifyToken,SessionPayload } from "@/lib/auth";
 
@@ -26,7 +26,7 @@ if(Number.isNaN(userIdNum)){
     return NextResponse.json({error:'Invalid user'}, {status: 400})
 }
 
-const  [send] = await db.execute(sql`INSERT INTO chatMessage (senderId, recipientId, content) VALUES (${senderId}, ${recipientId}, ${content})`)
+const  [send] = await db.execute(sql`INSERT INTO chatmessage (senderId, recipientId, content) VALUES (${senderId}, ${recipientId}, ${content})`)
 
 return NextResponse.json(send, )
 }

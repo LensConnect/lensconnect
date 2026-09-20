@@ -1,6 +1,28 @@
 import { int, mysqlTable, varchar, mysqlEnum, date, timestamp, boolean, json, time, text } from 'drizzle-orm/mysql-core';
 import { defineRelations } from 'drizzle-orm';
+import {customType} from 'drizzle-orm/mysql-core';
 
+const jsonArrayParser = customType<{data:string[]}>({
+  dataType(config) {
+    return 'json';
+  },
+
+  toDriver(value:string[]){
+    return  JSON.stringify(value);
+
+  },
+
+  fromDriver(value:unknown){
+      if (typeof value === "string") {
+      try {
+        return JSON.parse(value) as string[];
+      } catch {
+        return [];
+      }
+    }
+    return (value as string[]) || [];
+  }
+})
 export const users = mysqlTable('users', {
   id: int().primaryKey().autoincrement(),
   fullname: varchar({ length: 255 }).notNull(),
@@ -52,14 +74,14 @@ export const photographer_profiles = mysqlTable("photographer_profiles", {
   updatedAt: timestamp().defaultNow().onUpdateNow(),
   experience: int().notNull(),
   hourlyRate: int().notNull(),
-  specialties: json('specialties').$type<string[]>().default([]),
+  specialties: jsonArrayParser('specialties').default([]),
   availability: boolean().notNull(),
-  portfolio_image_url: json('portfolio_image_url').$type<string[]>().default([]),
+   portfolio_image_url: jsonArrayParser('portfolio_image_url').default([]),
   profile_image_url: varchar({length: 255}),
   
 });
 
-export const chatMessage = mysqlTable("chatMessage",{
+export const chatmessage = mysqlTable("chatmessage",{
   id: int().primaryKey().autoincrement(),
   senderId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),
   recipientId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),
@@ -117,8 +139,12 @@ export const photographer_portfolios = mysqlTable("photographer_portfolios", {
   
 })
 
-export type MessageSelect = typeof chatMessage.$inferInsert
-export type MessageInsert = typeof chatMessage.$inferInsert;
+
+
+
+
+export type MessageSelect = typeof chatmessage.$inferInsert
+export type MessageInsert = typeof chatmessage.$inferInsert;
 export const relations = defineRelations(
   { users, photographer_profiles, profiles },
   (r) => ({

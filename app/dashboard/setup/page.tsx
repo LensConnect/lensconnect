@@ -248,42 +248,46 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
   ]
 
   return (
-    <div>
+    <div className="min-h-screen bg-white  text-foreground">
       <Header />
-      <div className="max-w-3xl mx-auto py-10 px-4">
-        <div className="py-6">
-          <h1 className="font-bold text-black text-2xl md:text-3xl">Complete Your Profile</h1>
-          <p className="text-gray-500 text-[16px] mt-2">
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-7 sm:mb-9">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Creator onboarding
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Complete Your Profile</h1>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             Let’s set up your photographer profile for bookings
           </p>
         </div>
 
-        <Card className="shadow-lg border border-gray-200">
-          <CardHeader>
-            <CardTitle className="text-2xl font-semibold text-gray-800 flex justify-between items-center">
+        <Card className="overflow-hidden rounded-3xl border border-primary/15 bg-white shadow-xl shadow-orange-900/5">
+          <CardHeader className="border-b border-orange-100 bg-gradient-to-r from-white to-orange-50/70 px-5 py-5 sm:px-8 sm:py-6">
+            <CardTitle className="flex items-center justify-between gap-4 text-lg font-bold text-foreground sm:text-2xl">
               Photographer Setup
-              <span className="text-sm text-gray-500">Step {step} of {steps.length}</span>
+              <span className="whitespace-nowrap rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold text-primary sm:text-xs">Step {step} of {steps.length}</span>
             </CardTitle>
           </CardHeader>
 
           {/* Stepper */}
-          <div className="flex items-center justify-between px-8 pb-6">
+          <div className="flex items-start justify-between gap-2 border-b border-orange-100 px-5 py-6 sm:px-8 sm:py-7">
             {steps.map((s, index) => (
-              <div key={s.id} className="flex flex-col items-center text-center relative">
+              <div key={s.id} className="relative flex min-w-0 flex-1 flex-col items-center text-center">
                 <div
-                  className={`rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 ${step === s.id
-                    ? "bg-black text-white"
+                  className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-4 border-white transition-all duration-300 sm:h-11 sm:w-11 ${step === s.id
+                    ? "bg-primary text-white shadow-lg shadow-primary/30"
                     : step > s.id
-                      ? "bg-green-500 text-white"
-                      : "bg-gray-200 text-gray-600"
+                      ? "bg-orange-200 text-primary"
+                      : "bg-orange-50 text-orange-300"
                     }`}
                 >
                   {step > s.id ? <CheckCircle size={20} /> : <s.icon size={20} />}
                 </div>
-                <p className="text-xs mt-2 font-medium">{s.label}</p>
+                <p className={`mt-2 text-[10px] font-bold sm:text-xs ${step >= s.id ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</p>
                 {index < steps.length - 1 && (
                   <div
-                    className={`absolute top-5 left-1/2 h-0.5 w-full -translate-x-1/2 ${step > s.id ? "bg-green-500" : "bg-gray-300"
+                    className={`absolute left-1/2 top-5 h-0.5 w-full ${step > s.id ? "bg-primary" : "bg-orange-100"
                       }`}
                   ></div>
                 )}
@@ -291,7 +295,7 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
             ))}
           </div>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 px-5 py-6 sm:px-8 sm:py-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -306,10 +310,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label>Full Name</Label>
+                        <Label className="text-xs font-bold text-foreground">Full Name</Label>
                         <Input
                           name="fullname"
-                          className="mt-2"
+                          className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                           value={formData.fullname}
                           onChange={handleChange}
                         />
@@ -317,10 +321,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                       </div>
 
                       <div>
-                        <Label>Email</Label>
+                        <Label className="text-xs font-bold text-foreground">Email</Label>
                         <Input
                           name="email"
-                          className="mt-2"
+                          className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                           value={formData.email}
                           onChange={handleChange}
                         />
@@ -328,10 +332,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                       </div>
 
                       <div>
-                        <Label>Phone</Label>
+                        <Label className="text-xs font-bold text-foreground">Phone</Label>
                         <Input
                           name="phoneNumber"
-                          className="mt-2"
+                          className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                           value={formData.phoneNumber}
                           onChange={handleChange}
                  
@@ -341,10 +345,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                     </div>
 
                     <div>
-                      <Label>Location</Label>
+                      <Label className="text-xs font-bold text-foreground">Location</Label>
                       <Input
                         name="location"
-                        className="mt-2"
+                        className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                         value={formData.location}
                         onChange={handleChange}
                       />
@@ -352,8 +356,8 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                     </div>
 
                     <div>
-                      <Label>Bio</Label>
-                      <Textarea name="bio" value={formData.bio} onChange={handleChange} rows={3} />
+                      <Label className="text-xs font-bold text-foreground">Bio</Label>
+                      <Textarea name="bio" value={formData.bio} onChange={handleChange} rows={4} className="mt-2 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20" />
                       {errors.bio && <p className="text-red-500 mt-2 text-sm">{errors.bio}</p>}
                     </div>
                   </>
@@ -364,10 +368,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label>Experience (Years)</Label>
+                        <Label className="text-xs font-bold text-foreground">Experience (Years)</Label>
                         <Input
                           name="experience"
-                          className="mt-2"
+                          className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                           value={formData.experience}
                           onChange={handleChange}
                         />
@@ -375,10 +379,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                       </div>
 
                       <div>
-                        <Label>Hourly Rate ($)</Label>
+                        <Label className="text-xs font-bold text-foreground">Hourly Rate ($)</Label>
                         <Input
                           name="hourly_rate"
-                          className="mt-2"
+                          className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                           value={formData.hourly_rate}
                           onChange={handleChange}
                         />
@@ -387,10 +391,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                     </div>
 
                     <div>
-                      <Label>Portfolio URL</Label>
+                      <Label className="text-xs font-bold text-foreground">Portfolio URL</Label>
                       <Input
                         name="portfolio_url"
-                        className="mt-2"
+                        className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                         value={formData.portfolio_url}
                         onChange={handleChange}
                       />
@@ -398,10 +402,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                     </div>
 
                     <div>
-                      <Label>Role</Label>
+                      <Label className="text-xs font-bold text-foreground">Role</Label>
                       <Input
                         name="role"
-                        className="mt-2"
+                        className="mt-2 h-11 rounded-xl border-orange-200 bg-white focus-visible:border-primary focus-visible:ring-primary/20"
                         value={formData.role}
                         onChange={handleChange}
                       />
@@ -410,8 +414,8 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
 
 
                     <div>
-                      <Label>Specialties</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <Label className="text-xs font-bold text-foreground">Specialties</Label>
+                      <div className="mt-3 flex flex-wrap gap-2">
                         {availableSpecialties.map((s) => (
                           <Button
                             key={s}
@@ -419,7 +423,10 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                             size="sm"
                             variant={formData.specialties.includes(s) ? "default" : "outline"}
                             onClick={() => toggleSpecialty(s)}
-                            className="rounded-full"
+                            className={`rounded-full border px-3 transition-all ${formData.specialties.includes(s)
+                              ? "border-primary bg-primary text-white shadow-sm shadow-primary/20 hover:bg-primary/90"
+                              : "border-orange-200 bg-white text-foreground hover:border-primary hover:bg-orange-50"
+                              }`}
                           >
                             {s}
                           </Button>
@@ -427,13 +434,17 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between mt-4">
-                      <Label>Available for Bookings</Label>
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-orange-100 bg-orange-50/60 p-4 mt-5">
+                      <div>
+                        <Label className="text-sm font-bold text-foreground">Available for Bookings</Label>
+                        <p className="mt-1 text-xs text-muted-foreground">Let clients know when you are accepting new work.</p>
+                      </div>
                       <Switch
                         checked={formData.availability}
                         onCheckedChange={(checked) =>
                           setFormData((p) => ({ ...p, availability: checked }))
                         }
+                        className="data-[state=checked]:bg-primary"
                       />
                     </div>
                   </>
@@ -442,15 +453,17 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                 {/* Step 3 */}
                 {step === 3 && (
                   <>
-                    <div>
-                      <Label>Upload Profile Image</Label>
-                      <div className="flex items-center gap-3">
+                    <div className="rounded-2xl border border-dashed border-primary/30 bg-orange-50/50 p-4 sm:p-6">
+                      <Label className="text-sm font-bold text-foreground">Upload Profile Image</Label>
+                      <p className="mt-1 text-xs text-muted-foreground">Use a clear photo clients can recognize.</p>
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                         <Input
                           type="file"
                           accept="image/*"
                           onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                          className="h-11 rounded-xl border-orange-200 bg-white file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white hover:file:bg-primary/90"
                         />
-                        <Button onClick={handleUpload} disabled={uploading}>
+                        <Button onClick={handleUpload} disabled={uploading} className="h-11 rounded-xl bg-primary px-5 font-bold text-white shadow-md shadow-primary/20 hover:bg-primary/90">
                           {uploading ? "Uploading..." : "Upload"}
                         </Button>
                       </div>
@@ -461,7 +474,7 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
                         <img
                           src={formData.profile_image_url}
                           alt="Profile Preview"
-                          className="w-32 h-32 rounded-full mt-3 border shadow-md"
+                          className="mt-4 h-36 w-36 rounded-full border-4 border-white object-cover shadow-lg shadow-orange-900/10 ring-2 ring-primary/25"
                         />
                       </div>
                     )}
@@ -471,14 +484,18 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
             </AnimatePresence>
 
             {/* Navigation */}
-            <div className="flex justify-between mt-6">
-              {step > 1 && <Button variant="outline" onClick={handleBack}>Back</Button>}
-              {step < 3 && <Button onClick={handleNext}>Next</Button>}
-              {step === 3 && <Button onClick={handleSubmit}>Finish Setup</Button>}
+            <div className="mt-6 flex items-center justify-between gap-3 border-t border-orange-100 pt-5">
+              {step > 1 ? (
+                <Button type="button" variant="outline" onClick={handleBack} className="h-11 rounded-xl border-orange-200 px-5 font-bold hover:border-primary hover:bg-orange-50">
+                  Back
+                </Button>
+              ) : <span />}
+              {step < 3 && <Button type="button" onClick={handleNext} className="h-11 rounded-xl bg-primary px-6 font-bold text-white shadow-md shadow-primary/20 hover:bg-primary/90">Next</Button>}
+              {step === 3 && <Button type="button" onClick={handleSubmit} className="h-11 rounded-xl bg-primary px-6 font-bold text-white shadow-md shadow-primary/20 hover:bg-primary/90">Finish Setup</Button>}
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   )
 }

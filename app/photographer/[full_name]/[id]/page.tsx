@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { motion, AnimatePresence, color } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 import { Header } from "@/components/header";
@@ -89,6 +89,7 @@ interface FormErrors {
   type?: string;
   location?: string;
   message?: string;
+  specialties?: string[];
   totalPrice?: number; 
 }
 
@@ -120,7 +121,16 @@ export default function PhotographerProfilePage({
 }) {
   const { id } = use(params);
   const { user } = useAuth();
-
+const availabilities = [
+ "Wedding",
+  "Portrait",
+  "Event",
+  "Nature",
+  "Fashion",
+  "Sports",
+  "Travel",
+  "Product",
+  ]
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [profile, setProfile] = useState<Profile | null>(null);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
@@ -142,6 +152,10 @@ export default function PhotographerProfilePage({
     return [];
   };
 
+
+ 
+
+  
   const buildSlides = (item: PortfolioItem): LightboxSlide[] => {
     const images = normalizeImages(item.image_url);
     return images.map((src) => ({
@@ -607,17 +621,19 @@ export default function PhotographerProfilePage({
                         </div>
 
                         <div className="space-y-3 p-3.5">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             {item.location ? (
-                              <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                              <div className="flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground sm:max-w-[48%]">
                                 <MapPin className="h-3 w-3 shrink-0 text-primary" />
-                                <span>{item.location}</span>
+                                <span className="min-w-0 truncate" title={item.location}>
+                                  {item.location}
+                                </span>
                               </div>
                             ) : (
                               <span className="text-xs text-muted-foreground/50">Location not set</span>
                             )}
                             {item.category && item.category.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
+                              <div className="flex min-w-0 max-w-full flex-wrap gap-1 sm:max-w-[52%] sm:justify-end">
                                 {item.category.map((c) => (
                                   <Badge
                                     key={c}
@@ -680,9 +696,15 @@ export default function PhotographerProfilePage({
                   </div>
 
                   
-                  <div onClick={closeLightbox} className="absolute bg-black  mt-20 left-4 top-4   items-center gap-2 rounded-full border border-white/20 bg-res px-3 py-2 text-xs font-semibold text-white ">
-                     <X className="h-5 w-5 " />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={closeLightbox}
+                    aria-label="Close gallery"
+                    className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border-2 border-white/80 bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-xl shadow-primary/40 transition-all hover:scale-105 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#100907] sm:left-6 sm:px-4"
+                  >
+                    <X className="h-5 w-5" />
+                    <span>Close</span>
+                  </button>
 
                   
                  
