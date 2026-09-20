@@ -11,14 +11,7 @@ import { format } from "date-fns";
 import { sendMessage } from "../chatActions/chat";
 import { MessageSelect } from "@/app/src/db/schema";
 import { supabase } from "@/lib/supabaseClient";
-type Message = {
-  id: string;
-  senderId: string;
-  recipientId: string;
-  content: string;
-  created_at: string;
-  is_read: boolean;
-};
+
 
 type Profile = {
   id: number;
@@ -28,19 +21,19 @@ type Profile = {
 
 interface ChatInterfaceProps {
   currentUserId:number;
-  initialRecipientId?: number;
+  initialRecipientId?: number ;
 }
 
 export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfaceProps) {
   const [conversations, setConversations] = useState<Profile[]>([]);
   const [activeRecipient, setActiveRecipient] = useState<Profile | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageSelect[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
   const [showMobileChat, setShowMobileChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [optimisticMessages, addOptimisticMessage] = useOptimistic(messages, (state, newMessage: Message) => [...state, newMessage]
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(messages, (state, newMessage: MessageSelect) => [...state, newMessage]
 
   );
 
@@ -93,12 +86,12 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
     const currentText = newMessage;
     setNewMessage('');
 
-    const dummyMessage: Message = {
-      id: String(Math.random()), // Temporary ID
-      senderId: String(currentUserId),
-      recipientId: String(activeRecipient.id),
+    const dummyMessage: MessageSelect = {
+      id: Math.random(), 
+      senderId: currentUserId,
+      recipientId: activeRecipient.id,
       content: currentText,
-      created_at: new Date().toISOString(),
+      created_at: new Date(),
       is_read: false,
     };
 
@@ -294,7 +287,7 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
                             "text-[10px] ml-2 inline-block opacity-70",
                             isMe ? "text-primary-foreground/70" : "text-muted-foreground"
                           )}>
-                            {format(new Date(msg.created_at), 'h:mm a')}
+                          Date(msg.created_at).toLocaleTimeString([],)
                           </span>
                         </div>
 
@@ -343,7 +336,7 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
                     !newMessage.trim() ? "opacity-50" : "shadow-md hover:shadow-lg"
                   )}
                 >
-                  <Send className="h-5 w-5 ml-0.5" />
+                  <Send onClick={handleSend} className="h-5 w-5 ml-0.5" />
                 </Button>
               </form>
             </div>

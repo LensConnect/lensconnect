@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, color } from "framer-motion";
 import { toast } from "sonner";
 
 import { Header } from "@/components/header";
@@ -539,27 +539,29 @@ export default function PhotographerProfilePage({
                   <h2 className="text-base font-bold text-foreground">Selected Works</h2>
                   <p className="text-xs text-muted-foreground">Recent creative collections & client projects.</p>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  {portfolioItems.length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        openLightbox(
-                          portfolioItems.flatMap((item) => buildSlides(item)),
-                          0
-                        )
-                      }
-                      className="rounded-xl text-xs font-semibold h-8 px-3 border border-border/60 hover:bg-primary/5 hover:border-primary/30 transition-colors"
+                  <div className="flex items-center gap-2.5">
+                    {portfolioItems.length > 0 && (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          openLightbox(
+                            portfolioItems.flatMap((item) => buildSlides(item)),
+                            0
+                          )
+                        }
+                        className="rounded-xl text-xs font-bold h-8.5 px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95"
+                      >
+                        <Play className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Slideshow All</span>
+                      </Button>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className="text-xs font-mono font-semibold border-primary/30 text-primary bg-primary/5"
                     >
-                      <Play className="h-3.5 w-3.5 mr-1 text-primary" />
-                      <span>Slideshow All</span>
-                    </Button>
-                  )}
-                  <Badge variant="outline" className="text-xs font-mono font-semibold">
-                    {portfolioItems.length} Collections
-                  </Badge>
-                </div>
+                      {portfolioItems.length} Collections
+                    </Badge>
+                  </div>
               </div>
 
               {portfolioItems.length > 0 ? (
@@ -571,7 +573,7 @@ export default function PhotographerProfilePage({
                     return (
                       <div
                         key={item.id}
-                        className="group relative rounded-2xl overflow-hidden border border-border/60 bg-muted shadow-xs hover:border-primary/40 hover:shadow-md transition-all duration-300"
+                        className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10"
                       >
                         <div className="aspect-[4/3] relative">
                           {preview ? (
@@ -586,9 +588,11 @@ export default function PhotographerProfilePage({
                               <ImageIcon className="h-8 w-8 opacity-40" />
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-95" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-95" />
+                          <div className="absolute inset-x-0 top-0 h-1 bg-primary opacity-80 transition-opacity group-hover:opacity-100" />
                           {hasMultiple && (
-                            <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+                            <div className="absolute right-3 top-3 rounded-full border border-primary/40 bg-black/60 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
+                              <ImageIcon className="mr-1 inline-block h-3 w-3 text-primary" />
                               {images.length} photos
                             </div>
                           )}
@@ -602,11 +606,11 @@ export default function PhotographerProfilePage({
                           </div>
                         </div>
 
-                        <div className="p-3 space-y-2.5">
+                        <div className="space-y-3 p-3.5">
                           <div className="flex items-center justify-between">
                             {item.location ? (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <MapPin className="h-3 w-3 text-primary" />
+                              <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3 shrink-0 text-primary" />
                                 <span>{item.location}</span>
                               </div>
                             ) : (
@@ -618,7 +622,7 @@ export default function PhotographerProfilePage({
                                   <Badge
                                     key={c}
                                     variant="secondary"
-                                    className="px-1.5 py-0 rounded-md text-[9px] font-medium bg-muted text-foreground border border-border/60"
+                                    className="rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0 text-[9px] font-semibold text-primary"
                                   >
                                     {c}
                                   </Badge>
@@ -629,11 +633,10 @@ export default function PhotographerProfilePage({
 
                           <Button
                             size="sm"
-                            variant="outline"
                             onClick={() => openItemLightbox(item)}
-                            className="w-full h-8 rounded-lg text-xs font-semibold border-border/80 hover:bg-primary/5 hover:border-primary/30 group-hover:bg-primary/10 transition-colors"
+                            className="h-10 w-full gap-1.5 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98]"
                           >
-                            <ImageIcon className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                            <ImageIcon className="h-3.5 w-3.5" />
                             <span>View Gallery</span>
                           </Button>
                         </div>
@@ -654,29 +657,39 @@ export default function PhotographerProfilePage({
               {lightboxOpen && lightboxSlides.length > 0 && (
                 <motion.div
                   key="lightbox-backdrop"
-                  className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+                  className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#100907]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
                 >
-                  {/* Close */}
-                  <motion.button
-                    key="lb-close"
-                    onClick={closeLightbox}
-                    className="absolute top-4 right-4 z-10 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                  >
-                    <X className="h-5 w-5" />
-                  </motion.button>
+                  {/* Cinematic orange-lit vignette */}
+                  <div className="absolute inset-0 -z-10 pointer-events-none">
+                    <div className="absolute left-1/2 top-1/2 h-[115%] w-[115%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_35%,#100907_100%)]" />
+                  </div>
 
+                  <div className="absolute inset-x-0 top-0 z-10 h-1 bg-white/10">
+                    <motion.div
+                      className="h-full bg-primary shadow-[0_0_18px_rgba(255,79,1,0.9)]"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${((currentSlide + 1) / lightboxSlides.length) * 100}%` }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                    />
+                  </div>
+
+                  
+                  <div onClick={closeLightbox} className="absolute bg-black  mt-20 left-4 top-4   items-center gap-2 rounded-full border border-white/20 bg-res px-3 py-2 text-xs font-semibold text-white ">
+                     <X className="h-5 w-5 " />
+                  </div>
+
+                  
+                 
                   {/* Counter */}
                   <motion.div
                     key="lb-counter"
-                    className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-xs font-mono text-white/50"
+                    className="absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-full border border-primary/40 bg-black/50 px-3 py-1 font-mono text-xs font-semibold text-white backdrop-blur-md"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -689,10 +702,12 @@ export default function PhotographerProfilePage({
                     <motion.button
                       key="lb-prev"
                       onClick={prevImage}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/5 hover:bg-white/15 text-white border border-white/10 transition-colors"
+                      aria-label="Previous image"
+                      className="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 p-2 text-primary-foreground shadow-xl shadow-black/40 backdrop-blur-md transition-all hover:scale-110 hover:border-primary hover:bg-primary"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
+                      whileHover={{ x: -2 }}
                     >
                       <ChevronLeft className="h-6 w-6" />
                     </motion.button>
@@ -701,16 +716,16 @@ export default function PhotographerProfilePage({
                   {/* Main Image */}
                   <motion.div
                     key={`lb-image-${currentSlide}`}
-                    className="max-w-[90vw] max-h-[75vh] flex items-center justify-center"
+                    className="flex max-h-[72vh] max-w-[88vw] items-center justify-center sm:max-h-[76vh]"
                     initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
                     <img
                       src={lightboxSlides[currentSlide]?.src}
                       alt={lightboxSlides[currentSlide]?.alt}
-                      className="max-w-full max-h-[75vh] object-contain"
+                      className="max-w-full max-h-[75vh] object-contain drop-shadow-2xl"
                     />
                   </motion.div>
 
@@ -719,10 +734,12 @@ export default function PhotographerProfilePage({
                     <motion.button
                       key="lb-next"
                       onClick={nextImage}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/5 hover:bg-white/15 text-white border border-white/10 transition-colors"
+                      aria-label="Next image"
+                      className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 p-2 text-primary-foreground shadow-xl shadow-black/40 backdrop-blur-md transition-all hover:scale-110 hover:border-primary hover:bg-primary"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
+                      whileHover={{ x: 2 }}
                     >
                       <ChevronRight className="h-6 w-6" />
                     </motion.button>
@@ -731,31 +748,36 @@ export default function PhotographerProfilePage({
                   {/* Info Bar */}
                   <motion.div
                     key="lb-info"
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 pb-5 px-4 text-white"
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#100907] via-[#100907]/90 to-transparent px-5 pb-6 pt-20 text-white sm:px-8"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
                   >
-                    <h3 className="text-lg font-bold">
+                    <div className="mb-2 h-1 w-10 rounded-full bg-primary shadow-[0_0_12px_rgba(255,79,1,0.8)]" />
+                    <h3 className="text-xl font-bold text-white sm:text-2xl">
                       {lightboxSlides[currentSlide]?.title}
                     </h3>
                     {lightboxSlides[currentSlide]?.description && (
-                      <p className="text-sm text-white/65 mt-1 line-clamp-2">
+                      <p className="text-sm text-white/65 mt-1.5 line-clamp-2">
                         {lightboxSlides[currentSlide].description}
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-white/50">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-3 text-xs text-white/50">
                       {lightboxSlides[currentSlide]?.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-primary/60" />
-                          {lightboxSlides[currentSlide].location}
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-white/70">
+                            {lightboxSlides[currentSlide].location}
+                          </span>
                         </span>
                       )}
                       {lightboxSlides[currentSlide]?.category &&
                         lightboxSlides[currentSlide].category!.length > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Tag className="h-3 w-3 text-primary/60" />
-                            {lightboxSlides[currentSlide].category!.join(", ")}
+                          <span className="flex items-center gap-1.5">
+                            <Tag className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-white/70">
+                              {lightboxSlides[currentSlide].category!.join(", ")}
+                            </span>
                           </span>
                         )}
                     </div>
@@ -765,7 +787,7 @@ export default function PhotographerProfilePage({
                   {lightboxSlides.length > 1 && (
                     <motion.div
                       key="lb-thumbnails"
-                      className="absolute bottom-32 left-1/2 -translate-x-1/2 flex gap-1.5 overflow-x-auto px-2 py-1.5 rounded-lg bg-black/40 border border-white/10"
+                      className="absolute bottom-32 left-1/2 flex max-w-[calc(100vw-5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-xl border border-primary/25 bg-black/55 px-3 py-2 backdrop-blur-md sm:bottom-36"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
@@ -774,10 +796,10 @@ export default function PhotographerProfilePage({
                         <button
                           key={idx}
                           onClick={() => setCurrentSlide(idx)}
-                          className={`shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
+                          className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
                             idx === currentSlide
-                              ? "border-primary opacity-100"
-                              : "border-white/30 opacity-50 hover:opacity-80"
+                              ? "scale-110 border-primary opacity-100 shadow-[0_0_14px_rgba(255,79,1,0.65)]"
+                              : "border-white/30 opacity-50 hover:opacity-80 hover:border-white/50"
                           }`}
                         >
                           <img
