@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     const targetUserId = Number(rawUserId)
 
     // 2. Fetch Photographer using unified Drizzle v2 functional API style
-    const photographer = await db.query.users.findFirst({
+    const photographer = await (db as any).query.users.findFirst({
     where: {
         id: targetUserId,
         role: 'photographer',
@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Fetch Client directly from users table
-    const client = await db.query.users.findFirst({
+    const client = await (db as any).query.users.findFirst({
       where: {
         id: targetUserId,
         role: 'client',
@@ -174,7 +174,7 @@ export async function PATCH(req: NextRequest) {
 
     const targetUserId = Number(userId);
 
-    const userResult = await db.query.users.findFirst({
+    const userResult = await (db as any).query.users.findFirst({
       where: { id: targetUserId },
       columns: { role: true },
     });
@@ -225,11 +225,11 @@ export async function PATCH(req: NextRequest) {
       }
 
       if (Object.keys(photoUpdates).length > 0) {
-        const existing = await db.query.photographer_profiles.findFirst({
+        const existing = await (db as any).query.photographer_profiles.findFirst({
           where: { userId: targetUserId }
         });
         if (!existing) {
-          const userInfo = await db.query.users.findFirst({
+          const userInfo = await (db as any).query.users.findFirst({
             where: { id: targetUserId },
             columns: { fullname: true, email: true, role: true },
           });
@@ -250,7 +250,7 @@ export async function PATCH(req: NextRequest) {
       }
 
       if (Object.keys(profileUpdates).length > 0) {
-        const existing = await db.query.profiles.findFirst({
+        const existing = await (db as any).query.profiles.findFirst({
           where: { userId: targetUserId }
         });
         if (!existing) {

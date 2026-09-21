@@ -1,5 +1,5 @@
 import { int, mysqlTable, varchar, mysqlEnum, date, timestamp, boolean, json, time, text } from 'drizzle-orm/mysql-core';
-import { relations } from 'drizzle-orm';
+import { defineRelations } from 'drizzle-orm';
 import {customType} from 'drizzle-orm/mysql-core';
 
 const jsonArrayParser = customType<{data:string[]}>({
@@ -81,7 +81,7 @@ export const photographer_profiles = mysqlTable("photographer_profiles", {
   
 });
 
-export const chatmessage = mysqlTable("chatmessage",{
+export const chatmessage = mysqlTable("chatessage",{
   id: int().primaryKey().autoincrement(),
   senderId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),
   recipientId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),
@@ -145,13 +145,18 @@ export const photographer_portfolios = mysqlTable("photographer_portfolios", {
 
 export type MessageSelect = typeof chatmessage.$inferInsert
 export type MessageInsert = typeof chatmessage.$inferInsert;
-export const userRelations = relations(users, ({ one }) => ({
-  photographerProfile: one(photographer_profiles, {
-    fields: [users.id],
-    references: [photographer_profiles.userId],
-  }),
-  profile: one(profiles, {
-    fields: [users.id],
-    references: [profiles.userId],
-  }),
-}));
+export const relations = defineRelations(
+  { users, photographer_profiles, profiles },
+  (r) => ({
+    users: {
+      photographer_profiles: r.one.photographer_profiles({
+        from: r.users.id,
+        to: r.photographer_profiles.userId
+      }),
+      profiles: r.one.profiles({
+        from: r.users.id,
+        to: r.profiles.userId
+      }),
+    },
+  })
+);

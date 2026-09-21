@@ -51,7 +51,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^1.0.0-rc.4",
     "effect": "^4.0.0-rc.116",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.29.2",
