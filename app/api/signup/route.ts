@@ -83,10 +83,7 @@ console.log("NORMALIZED EMAIL:", normalizedEmail);
       );
     }
 
-    // -----------------------------------------
-    // 4. Check if email already exists
-    // -----------------------------------------
-
+    
     const existingUser = await db
       .select({
         id: users.id,
