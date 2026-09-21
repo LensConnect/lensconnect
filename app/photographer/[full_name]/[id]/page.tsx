@@ -412,7 +412,7 @@ export default function PhotographerProfilePage({
                   alt={profile.fullname}
                   width={300}
                   height={300}
-                  className="h-full w-full object-cover rounded-xl"
+                  className="h-full w-full object-cover rounded-full"
                 />
               ) : (
                 <div className="h-full w-full rounded-xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-3xl">

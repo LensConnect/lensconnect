@@ -103,19 +103,14 @@ console.log("NORMALIZED EMAIL:", normalizedEmail);
 
     
 
-    // -----------------------------------------
-    // 5. Hash password
-    // -----------------------------------------
+    
 
     const passwordHash = await bcrypt.hash(
       String(password),
       12
     );
 
-    // -----------------------------------------
-    // 6. Create user
-    // -----------------------------------------
-
+    
     await db.insert(users).values({
       fullname: normalizedFullname,
       email: normalizedEmail,
@@ -123,10 +118,7 @@ console.log("NORMALIZED EMAIL:", normalizedEmail);
       passwordHash,
     });
 
-    // -----------------------------------------
-    // 7. Fetch newly created user
-    // -----------------------------------------
-
+    
     const [createdUser] = await db
       .select({
         id: users.id,
@@ -148,10 +140,6 @@ console.log("NORMALIZED EMAIL:", normalizedEmail);
       );
     }
 
-    // -----------------------------------------
-    // 8. Create session cookie
-    // -----------------------------------------
-
     await createSessionCookie({
       id: String(createdUser.id),
       email: createdUser.email,
@@ -159,9 +147,7 @@ console.log("NORMALIZED EMAIL:", normalizedEmail);
       fullname: createdUser.fullname,
     });
 
-    // -----------------------------------------
-    // 9. Return successful response
-    // -----------------------------------------
+   
 
     return NextResponse.json(
       {
@@ -171,10 +157,7 @@ console.log("NORMALIZED EMAIL:", normalizedEmail);
       { status: 201 }
     );
   } catch (error) {
-    // -----------------------------------------
-    // 10. Handle errors
-    // -----------------------------------------
-
+   
     console.error("Signup route error:", error);
 
     const message =
