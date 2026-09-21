@@ -185,7 +185,7 @@ console.log("NORMALIZED EMAIL:", normalizedEmail);
         ? error.message
         : "Signup failed";
 
-    // Handle duplicate email from MySQL
+    
     if (
       message.includes("Duplicate entry") ||
       message.toLowerCase().includes("unique")

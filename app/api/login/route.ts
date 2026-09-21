@@ -3,6 +3,7 @@ import { db } from "@/app/src";                 // <-- correct import
 import { users } from "@/app/src/db/schema";
 import { NextResponse } from "next/server";
 import { createSessionCookie } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
@@ -22,12 +23,22 @@ export async function POST(req: Request) {
         email: users.email,
         role: users.role,
         fullname: users.fullname,
+        passwordHash:users.passwordHash
       })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
 
     if (!user) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, String(user.passwordHash));
+
+    if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }

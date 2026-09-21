@@ -121,16 +121,7 @@ export default function PhotographerProfilePage({
 }) {
   const { id } = use(params);
   const { user } = useAuth();
-const availabilities = [
- "Wedding",
-  "Portrait",
-  "Event",
-  "Nature",
-  "Fashion",
-  "Sports",
-  "Travel",
-  "Product",
-  ]
+
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [profile, setProfile] = useState<Profile | null>(null);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);

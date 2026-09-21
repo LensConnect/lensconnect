@@ -1,7 +1,23 @@
 import {NextRequest,NextResponse} from 'next/server'
 import {sql} from 'drizzle-orm'
 import {db} from '@/app/src'
-import { error } from 'console';
+
+function parseSpecialties(value: unknown): string[] {
+    if (Array.isArray(value)) {
+        return value.filter((specialty): specialty is string => typeof specialty === 'string');
+    }
+
+    if (typeof value !== 'string') return [];
+
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed)
+            ? parsed.filter((specialty): specialty is string => typeof specialty === 'string')
+            : [];
+    } catch {
+        return [];
+    }
+}
 
 
 export async function GET(req:NextRequest) {
@@ -17,8 +33,14 @@ export async function GET(req:NextRequest) {
 
 
         const [data] = await db.execute(sql`SELECT * FROM photographer_profiles WHERE userId = ${id} OR id = ${id}`);
+        const normalizedData = Array.isArray(data)
+            ? data.map((profile) => ({
+                ...profile,
+                specialties: parseSpecialties(profile.specialties),
+            }))
+            : data;
 
-        return NextResponse.json({data , error:'' ,status:200 , success:true});
+        return NextResponse.json({data: normalizedData , error:'' ,status:200 , success:true});
 
 
     }

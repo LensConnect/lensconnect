@@ -2,7 +2,7 @@
 
 import { db } from "@/app/src"
 import { sql } from "drizzle-orm";
-import { chatMessage } from "@/app/src/db/schema";
+
 import { cookies } from "next/headers";
 import { verifyToken,SessionPayload } from "@/lib/auth";
 import {supabase} from '@/lib/supabaseClient'
