@@ -122,7 +122,12 @@ export async function GET(req: NextRequest) {
           experience: pp?.experience || 0,
           specialties: pp?.specialties || [],
           portfolio_url: portfolioUrl,
-          profile_image_url: p?.imageUrl || '',
+          profile_image_url:
+            p?.profile_image_url ||
+            p?.imageUrl ||
+            pp?.profile_image_url ||
+            photographer.profile_image_url ||
+            '',
           website: p?.website || '',
         }
       }, { status: 200 })

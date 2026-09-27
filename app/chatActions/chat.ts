@@ -9,7 +9,7 @@ import {supabase} from '@/lib/supabaseClient'
 
 export async function sendMessage(
    
-    payload: { senderId: number; recipientId: number; content: string }
+    payload: { recipientId: number; content: string }
 ){
 
 
@@ -23,35 +23,38 @@ error: 'Unauthorized',
 })
 }
 
-const userIdNum = Number(user.id);
-if(Number.isNaN(userIdNum)){
+const senderId = Number(user.id);
+if(Number.isNaN(senderId)){
     return ( {status: 400})
+}
+
+if (!payload.recipientId || !payload.content?.trim()) {
+    return { success: false, error: 'Recipient and content are required' };
 }
 
 try{
 
-const [send] = await db.execute(sql`INSERT INTO chatMessage (senderId, recipientId, content) VALUES (${payload.senderId}, ${payload.recipientId}, ${payload.content})`)
+const [send] = await db.execute(sql`INSERT INTO chatmessage (senderId, recipientId, content) VALUES (${senderId}, ${payload.recipientId}, ${payload.content})`)
 
+const generatedId = (send as any).insertId; // Access the generated ID from the result
 
 const messagePayload = {
     id: crypto.randomUUID(),
-    senderId:payload.senderId,
+    senderId,
     recipientId:payload.recipientId,
     content:payload.content,
     created_at: new Date().toISOString()
 }
+const channel = supabase.channel(`chat_user_${payload.recipientId}`);
+await channel.send({
+    type: 'broadcast',
+    event: 'new-message',
+    payload: messagePayload
 
-await supabase.channel(`room-${payload.senderId}`).send({
-    type: 'broadcast',
-    event:`room-${payload.senderId}`,
-    payload: messagePayload
-})
-await supabase.channel(`room-${payload.recipientId}`).send({
-    type: 'broadcast',
-    event:`room-${payload.recipientId}`,
-    payload: messagePayload
-})
-return {send,success:true, data:messagePayload}
+});
+
+
+return {success:true, data:messagePayload}
 }
 catch (error) {
     console.error("Database Write Failed:", error);

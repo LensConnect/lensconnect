@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 
 interface Profile {
-  id: string;
+  userId: number  ;
   fullname: string;
   email: string;
   role: string;
@@ -489,7 +489,7 @@ export default function PhotographerProfilePage({
                 asChild
                 className="rounded-xl text-xs font-semibold h-9 px-3.5 border-border/80 hover:bg-muted"
               >
-                <Link href={`/messages?to=${profile.id}`}>
+                <Link href={`/messages?to=${profile.userId}`}>
                   <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-primary" />
                   <span>Message</span>
                 </Link>
@@ -869,7 +869,7 @@ export default function PhotographerProfilePage({
                   asChild
                   className="w-full h-11 rounded-xl text-xs font-semibold border-border/80 hover:bg-muted"
                 >
-                  <Link href={`/messages?to=${profile.id}`}>
+                  <Link href={`/messages?to=${profile.userId}`}>
                     <MessageSquare className="h-4 w-4 mr-1.5 text-primary" />
                     Inquire via Message
                   </Link>

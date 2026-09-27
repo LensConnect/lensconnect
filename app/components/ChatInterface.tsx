@@ -7,17 +7,40 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, User, Search, Phone, Video, MoreVertical, Paperclip, Check, CheckCheck, Smile, Image as ImageIcon, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import { sendMessage } from "../chatActions/chat";
 import { MessageSelect } from "@/app/src/db/schema";
 import { supabase } from "@/lib/supabaseClient";
-
+import { useAuth } from "@/lib/auth-context";
 
 type Profile = {
-  id: number;
+  userId: number;
   fullname: string;
   profile_image_url: string;
 };
+
+function appendUniqueMessage(current: MessageSelect[], incoming: MessageSelect) {
+  if (current.some((message) => String(message.id) === String(incoming.id))) {
+    return current;
+  }
+
+  return [...current, incoming];
+}
+
+function getMessageDateLabel(value: Date | string | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  if (isToday(date)) return "Today";
+  if (isYesterday(date)) return "Yesterday";
+  return format(date, "MMMM d, yyyy");
+}
+
+function getMessageTime(value: Date | string | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : format(date, "p");
+}
 
 interface ChatInterfaceProps {
   currentUserId:number;
@@ -30,6 +53,7 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
   const [messages, setMessages] = useState<MessageSelect[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
   const [showMobileChat, setShowMobileChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -37,12 +61,22 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
 
   );
 
+  const {user} = useAuth();
 
   useEffect(() =>{
     const channel = supabase.channel(`chat_user_${currentUserId}`)
-    .on('broadcast',{event:`room-${currentUserId}`},({payload}) =>{
-      if(payload.senderId === activeRecipient?.id){
-        setMessages((prev)=>[...prev,payload])
+    .on('broadcast',{event:"new-message"},({payload}) =>{
+      if(payload.recipientId === currentUserId){
+        setMessages((prev) => appendUniqueMessage(prev, payload));
+        // Also update conversation list preview if needed
+        setConversations((prev) => {
+          const exists = prev.some(p => p.userId === payload.senderId);
+          if (!exists) {
+            // Would need to fetch sender profile - for now just return
+            return prev;
+          }
+          return prev;
+        });
       }
     })
     .subscribe();
@@ -51,21 +85,113 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
 
     };
 
-  },[currentUserId, activeRecipient?.id]);
+  },[currentUserId]);
 
   useEffect(() => {
-    if (!initialRecipientId) return;
+  if (!initialRecipientId) return;
 
-    const recipient: Profile = {
-      id: initialRecipientId,
-      fullname: "New conversation",
-      profile_image_url: "",
+  let cancelled = false;
+
+  async function loadRecipient() {
+    try {
+      const response = await fetch(
+        `/api/profiles?userId=${initialRecipientId}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Could not load recipient profile");
+      }
+
+      const { result } = await response.json();
+      if (!result) {
+  console.warn("No recipient profile data could be found.");
+  return; 
+}
+
+      if (cancelled) return;
+
+      const recipient: Profile = {
+        userId: result.id,
+        fullname: result.fullname,
+        profile_image_url: result.profile_image_url || "",
+      };
+
+      setConversations([recipient]);
+      setActiveRecipient(recipient);
+      setShowMobileChat(true);
+    } catch (error) {
+      console.error("Could not load recipient:", error);
+    }
+  }
+
+  void loadRecipient();
+
+  return () => {
+    cancelled = true;
+  };
+}, [initialRecipientId]);
+
+useEffect(() => {
+  if (!activeRecipient) return;
+
+  let cancelled = false;
+
+  async function loadMessages() {
+    const response = await fetch(
+      `/api/chat_messages?recipientId=${activeRecipient!.userId}`, {method:"GET", headers:{"Content-Type":"application/json"}}
+    );
+
+    if (!response.ok) throw new Error("Could not load messages");
+
+    const data = await response.json();
+    const fetchedMessages = Array.isArray(data.messages) ? data.messages : [];
+    if (!cancelled) setMessages(fetchedMessages);
+  }
+
+  void loadMessages().catch(console.error);
+
+  return () => {
+    cancelled = true;
+  };
+}, [activeRecipient?.userId]);
+
+  // Load conversations list when no initial recipient (e.g., direct nav to /messages)
+  useEffect(() => {
+    if (initialRecipientId) return; // Already handled by loadRecipient effect
+
+    let cancelled = false;
+
+    async function loadConversations() {
+      try {
+        const response = await fetch('/api/conversations', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) throw new Error('Could not load conversations');
+
+        const data = await response.json();
+        const fetchedConversations = Array.isArray(data.conversations) ? data.conversations : [];
+        
+        if (!cancelled) {
+          const profiles = fetchedConversations.map((c: any) => ({
+            userId: c.id,
+            fullname: c.fullname,
+            profile_image_url: c.profile_image_url || '',
+          }));
+          setConversations(profiles);
+        }
+      } catch (error) {
+        console.error('Could not load conversations:', error);
+      }
+    }
+
+    void loadConversations();
+
+    return () => {
+      cancelled = true;
     };
-
-    setConversations([recipient]);
-    setActiveRecipient(recipient);
-    setShowMobileChat(true);
-  }, [initialRecipientId]);
+  }, [initialRecipientId, currentUserId]);
 
   // Auto-scroll
   useEffect(() => {
@@ -87,9 +213,9 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
     setNewMessage('');
 
     const dummyMessage: MessageSelect = {
-      id: Math.random(), 
+      id: -Date.now(),
       senderId: currentUserId,
-      recipientId: activeRecipient.id,
+      recipientId: activeRecipient.userId,
       content: currentText,
       created_at: new Date(),
       is_read: false,
@@ -101,15 +227,13 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
     });
 
       const result = await sendMessage({
-      senderId: currentUserId,
-      recipientId: activeRecipient.id,
+      recipientId: activeRecipient.userId,
       content: currentText
     });
-      if (result) {
-      // Replace the temporary random item with the real MySQL returned row data
-      setMessages((prev) => [...prev, result as any]);
+      if (result && "data" in result) {
+    setMessages((prev) => appendUniqueMessage(prev, result.data as any));
     } else {
-      alert(result || "Something went sideways sending your message.");
+      alert((result && "error" in result && result.error) || "Something went sideways sending your message.");
     }
   };
 
@@ -147,21 +271,21 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
         <div className="flex-1 overflow-y-auto">
           <div className="flex flex-col gap-1.5 p-3">
             {filteredConversations.map((profile) => {
-              const isOnline = onlineUsers.has(profile.id);
+              const isOnline = onlineUsers.has(profile.userId);
               return (
                 <button
-                  key={profile.id}
+                  key={profile.userId}
                   onClick={() => {
                     setActiveRecipient(profile);
                     setShowMobileChat(true);
                   }}
                   className={cn(
                     "flex items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-card group relative",
-                    activeRecipient?.id === profile.id ? "bg-card shadow-sm ring-1 ring-primary/15" : "text-muted-foreground"
+                    activeRecipient?.userId === profile.userId ? "bg-card shadow-sm ring-1 ring-primary/15" : "text-muted-foreground"
                   )}
                 >
                   <div className="relative">
-                    <Avatar className={cn("h-11 w-11 border-2 transition-colors", activeRecipient?.id === profile.id ? "border-primary/20" : "border-transparent")}>
+                    <Avatar className={cn("h-11 w-11 border-2 transition-colors", activeRecipient?.userId === profile.userId ? "border-primary/20" : "border-transparent")}>
                       <AvatarImage src={profile.profile_image_url} />
                       <AvatarFallback className="bg-primary/10 text-primary"><User className="h-4 w-4" /></AvatarFallback>
                     </Avatar>
@@ -172,7 +296,7 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className={cn("font-semibold truncate", activeRecipient?.id === profile.id ? "text-foreground" : "text-foreground")}>
+                      <span className={cn("font-semibold truncate", activeRecipient?.userId === profile.userId ? "text-foreground" : "text-foreground")}>
                         {profile.fullname || "Unknown"}
                       </span>
                       <span className="text-[10px] text-muted-foreground opacity-70">Chat</span>
@@ -224,15 +348,15 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
                     <AvatarImage src={activeRecipient.profile_image_url} />
                     <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
                   </Avatar>
-                  {onlineUsers.has(activeRecipient.id) && (
+                  {onlineUsers.has(activeRecipient.userId) && (
                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500"></span>
                   )}
                 </div>
                 <div>
                   <h3 className="font-bold leading-none tracking-tight">{activeRecipient.fullname}</h3>
                   <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className={cn("h-1.5 w-1.5 rounded-full", onlineUsers.has(activeRecipient.id) ? "bg-emerald-500" : "bg-muted-foreground/40")} />
-                    {onlineUsers.has(activeRecipient.id) ? "Online now" : "Offline"}
+                    <span className={cn("h-1.5 w-1.5 rounded-full", onlineUsers.has(activeRecipient.userId) ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+                    {onlineUsers.has(activeRecipient.userId) ? "Online now" : "Offline"}
                   </span>
                 </div>
               </div>
@@ -253,25 +377,31 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
             {/* Messages */}
             <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.06),transparent_38%)] p-3 md:p-8">
               <div className="flex flex-col gap-4 max-w-3xl mx-auto">
-                {/* Date separator example */}
-                <div className="flex items-center gap-4 py-5">
-                  <div className="h-[1px] bg-border flex-1"></div>
-                  <span className="rounded-full border border-border/70 bg-card px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Today</span>
-                  <div className="h-[1px] bg-border flex-1"></div>
-                </div>
-
                 {messages.map((msg, i) => {
-                  const isMe = false;
+                  const isMe = msg.senderId === currentUserId;
                   const isLast = i === messages.length - 1;
+                  const dateLabel = getMessageDateLabel(msg.created_at);
+                  const previousDateLabel = i > 0
+                    ? getMessageDateLabel(messages[i - 1].created_at)
+                    : null;
 
                   return (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        "flex w-full",
-                        isMe ? "justify-end" : "justify-start"
+                    <React.Fragment key={String(msg.id)}>
+                      {dateLabel && dateLabel !== previousDateLabel && (
+                        <div className="flex items-center gap-4 py-3">
+                          <div className="h-px flex-1 bg-border" />
+                          <span className="rounded-full border border-border/70 bg-card px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                            {dateLabel}
+                          </span>
+                          <div className="h-px flex-1 bg-border" />
+                        </div>
                       )}
-                    >
+                      <div
+                        className={cn(
+                          "flex w-full",
+                          isMe ? "justify-end" : "justify-start"
+                        )}
+                      >
                       <div className={cn(
                         "flex max-w-[85%] md:max-w-[75%] flex-col gap-1",
                         isMe ? "items-end" : "items-start"
@@ -287,7 +417,7 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
                             "text-[10px] ml-2 inline-block opacity-70",
                             isMe ? "text-primary-foreground/70" : "text-muted-foreground"
                           )}>
-                          Date(msg.created_at).toLocaleTimeString([],)
+                          {getMessageTime(msg.created_at)}
                           </span>
                         </div>
 
@@ -298,7 +428,8 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
                           </div>
                         )}
                       </div>
-                    </div>
+                      </div>
+                    </React.Fragment>
                   );
                 })}
                 <div ref={scrollRef} />
@@ -307,7 +438,7 @@ export function ChatInterface({ currentUserId, initialRecipientId }: ChatInterfa
 
             {/* Input */}
             <div className="border-t border-border/70 bg-card p-3 md:p-5 shrink-0">
-              <form className="max-w-3xl mx-auto relative flex items-center gap-1 md:gap-2">
+              <form onSubmit={handleSend} className="max-w-3xl mx-auto relative flex items-center gap-1 md:gap-2">
                 <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground shrink-0 h-9 w-9 md:h-10 md:w-10">
                   <Paperclip className="h-4 w-4" />
                 </Button>

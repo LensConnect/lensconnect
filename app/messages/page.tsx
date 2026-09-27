@@ -4,12 +4,18 @@ import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/header"; 
 import { ChatInterface } from "@/app/components/ChatInterface";
+import { useAuth } from "@/lib/auth-context";
 
 // We need Suspense for useSearchParams
 function MessagesContent() {
   const searchParams = useSearchParams();
   const recipientId = searchParams.get("to");
-  const currentUserId = Number(searchParams.get("userId")) || 1; // Default to 1 if not provided
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return <div className="p-6">Loading messages...</div>;
+  if (!user) return <div className="p-6">Sign in to view messages.</div>;
+
+  const currentUserId = Number(user.id);
   return (
     <div className="container mx-auto px-2 md:px-4 py-4 md:py-8 max-w-6xl h-[calc(100vh-64px)]">
       <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 px-2 md:px-0">Messages</h1>

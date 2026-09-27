@@ -81,7 +81,7 @@ export const photographer_profiles = mysqlTable("photographer_profiles", {
   
 });
 
-export const chatmessage = mysqlTable("chatessage",{
+export const chatmessage = mysqlTable("chatmessage",{
   id: int().primaryKey().autoincrement(),
   senderId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),
   recipientId: int().notNull().references(()=> users.id, {onDelete:"cascade"}),

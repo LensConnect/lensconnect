@@ -18,9 +18,7 @@ export async function POST(req: Request) {
       role,
     } = body;
 
-    // -----------------------------------------
-    // 1. Validate required fields
-    // -----------------------------------------
+   
 
     if (!fullname || !email || !password || !role) {
       return NextResponse.json(
@@ -32,9 +30,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // -----------------------------------------
-    // 2. Normalize input
-    // -----------------------------------------
+   
 
     const normalizedFullname = String(fullname).trim();
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -42,9 +38,7 @@ export async function POST(req: Request) {
     console.log("SIGNUP EMAIL RECEIVED:", email);
 console.log("NORMALIZED EMAIL:", normalizedEmail);
 
-    // -----------------------------------------
-    // 3. Validate values
-    // -----------------------------------------
+   
 
     if (!normalizedFullname) {
       return NextResponse.json(
