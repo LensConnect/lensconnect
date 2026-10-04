@@ -1,36 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
-import { useAuth } from "@/lib/auth-context";
-import { Header } from "@/components/header";
-
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import {
-  Calendar,
-  Search,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Plus,
-  Settings,
-  MessageSquare,
-  MapPin,
-  Camera,
-  Loader2,
-  Briefcase,
-  User,
+  ArrowRight,
   ArrowUpRight,
-  ExternalLink,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  LoaderCircle,
+  MapPin,
+  MessageSquare,
+  UserRound,
+  XCircle,
 } from "lucide-react";
+
+import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/auth-context";
 
 type Booking = {
   id: string;
@@ -38,649 +28,226 @@ type Booking = {
   photographer_id: string;
   start_time: string;
   duration_hours: number;
-  status: string;
+  status: "pending" | "confirmed" | "completed" | "rejected";
   total_price: number;
   shoot_type: string;
   location: string;
   message?: string;
-  profiles?: {
-    full_name: string;
-  };
+  profiles?: { full_name?: string };
 };
 
-export default function ClientDashboardPage({onCancel}:{ onCancel?: (bookingId: string, status:string) => void;}) {
-  const { user, isLoading } = useAuth();
+const formatMoney = (amount: number) => new Intl.NumberFormat("en-NG", {
+  style: "currency",
+  currency: "NGN",
+  maximumFractionDigits: 0,
+}).format(amount);
+
+function formatDate(dateTime: string) {
+  const date = new Date(dateTime);
+  return Number.isNaN(date.getTime())
+    ? "Date not available"
+    : new Intl.DateTimeFormat("en-NG", { weekday: "short", month: "short", day: "numeric", year: "numeric" }).format(date);
+}
+
+function formatTime(dateTime: string) {
+  const date = new Date(dateTime);
+  return Number.isNaN(date.getTime())
+    ? "Time not available"
+    : new Intl.DateTimeFormat("en-NG", { hour: "numeric", minute: "2-digit" }).format(date);
+}
+
+export default function ClientDashboardPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const fetchBookings = async () => {
-    if (!user) return;
+  const fetchBookings = useCallback(async () => {
+    if (!user?.id) return;
     setLoading(true);
-
+    setLoadError("");
     try {
-      const response = await fetch(`/api/get_booking_client?clientId=${user.id}`, {method: "GET", headers: {"Content-Type": "application/json"}})
-      const data = await response.json()
-
-      if (response.ok && Array.isArray(data)) {
-        setBookings(data)
-      } else {
-        setBookings([])
-      }
-    } catch (err) {
-      console.error("Failed to fetch bookings:", err)
-      setBookings([])
+      const response = await fetch(`/api/get_booking_client?clientId=${encodeURIComponent(user.id)}`);
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data)) throw new Error("Your bookings could not be loaded.");
+      setBookings(data as Booking[]);
+    } catch (error) {
+      console.error("Failed to load client bookings:", error);
+      setLoadError(error instanceof Error ? error.message : "Your bookings could not be loaded.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false)
-  }
-
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user && user.role === "client") {
-      fetchBookings();
-    }
-  }, [user]);
+    if (user?.role === "client") void fetchBookings();
+  }, [user, fetchBookings]);
 
-
-  const handleCancelBooking = async (bookingId: string, status: string) => {
-    if (!window.confirm("Are you sure you want to cancel this booking request?")) return;
-
-    const response = await fetch('/api/bookings', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId, status })
-    })
-    if (!response.ok) {
-      toast.error('Failed to cancel booking')
-      return
-    }
-    toast.success('Booking cancelled successfully')
-    onCancel?.(bookingId,status)
-    fetchBookings()
-
-  }; 
-
-  
-  
   useEffect(() => {
-    if (!isLoading) {
-      if (!user) router.push("/login");
-      else if (user.role === "photographer") router.push("/dashboard");
+    if (!authLoading) {
+      if (!user) router.replace("/login");
+      else if (user.role === "photographer") router.replace("/dashboard");
     }
-  }, [user, isLoading, router]);
+  }, [user, authLoading, router]);
 
-   
-  if (isLoading || !user || user.role !== "client") return null;
+  const handleCancel = async (bookingId: string) => {
+    if (!window.confirm("Cancel this booking request?")) return;
+    setUpdatingId(bookingId);
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId, status: "rejected" }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) throw new Error(result?.error || "The booking request could not be cancelled.");
+      toast.success("Booking request cancelled.");
+      await fetchBookings();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "The booking request could not be cancelled.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
-  const upcomingBookings = Array.isArray(bookings) ? bookings.filter(
-    (b) =>
-      b.status === "confirmed" &&
-      b.start_time &&
-      new Date(b.start_time).getTime() > new Date().getTime()
-  ) : [];
-  const pendingBookings = Array.isArray(bookings) ? bookings.filter((b) => b.status === "pending") : [];
-  const rejected = Array.isArray(bookings) ? bookings.filter((b)=> b.status === 'rejected') : [];
-  const completedBookings = Array.isArray(bookings) ? bookings.filter((b) => b.status === "completed") : [];
+  if (authLoading || !user || user.role !== "client") return null;
 
-  const totalSpent = completedBookings.reduce(
-    (sum, b) => sum + (Number(b.total_price) || 0),
-    0
-  );
+  const upcomingBookings = bookings.filter((booking) => booking.status === "confirmed");
+  const pendingBookings = bookings.filter((booking) => booking.status === "pending");
+  const archiveBookings = bookings.filter((booking) => booking.status === "completed" || booking.status === "rejected");
+
+  const renderContent = (items: Booking[], kind: "upcoming" | "pending" | "archive") => {
+    if (loading) {
+      return <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 border-b border-line px-5 py-16 text-center" role="status"><LoaderCircle className="size-6 animate-spin text-forest" aria-hidden="true" /><p className="text-sm text-muted-foreground">Loading your bookings…</p></div>;
+    }
+    if (loadError) {
+      return <div className="flex min-h-[300px] flex-col items-start justify-center gap-3 border-b border-line px-5 py-12"><h3 className="font-serif text-2xl">Bookings unavailable</h3><p className="max-w-lg text-sm leading-6 text-muted-foreground">{loadError}</p><Button variant="outline" onClick={() => void fetchBookings()} className="min-h-11 rounded-none">Try again</Button></div>;
+    }
+    if (items.length) {
+      return <div>{items.map((booking) => <ClientBooking key={booking.id} booking={booking} updating={updatingId === booking.id} onCancel={() => void handleCancel(booking.id)} />)}</div>;
+    }
+
+    const copy = kind === "upcoming"
+      ? { title: "Your schedule is open", body: "Confirmed shoots will appear here with the photographer, date, time, location, and booking details." }
+      : kind === "pending"
+        ? { title: "No pending requests", body: "Booking requests awaiting a photographer’s response will appear here." }
+        : { title: "No completed bookings", body: "Completed shoots and declined requests will remain here for reference." };
+
+    return (
+      <div className="flex min-h-[360px] flex-col items-center justify-center border-b border-line px-5 py-16 text-center sm:min-h-[390px]">
+        <div className="mb-5 flex size-14 items-center justify-center rounded-full border border-line-strong text-forest"><CalendarDays className="size-6" aria-hidden="true" /></div>
+        <h3 className="font-serif text-2xl leading-tight tracking-tight">{copy.title}</h3>
+        <p className="mt-2 max-w-[420px] text-sm leading-6 text-muted-foreground">{copy.body}</p>
+        {kind === "upcoming" && <>
+          <Button asChild className="mt-6 min-h-11 rounded-none px-5 text-sm font-semibold"><Link href="/photographers">Find photographers<ArrowRight className="size-4" aria-hidden="true" /></Link></Button>
+          <Link href="/dashboard/client/post-job" className="mt-2 inline-flex min-h-11 items-center px-3 text-sm font-medium text-forest underline underline-offset-4 hover:text-forest-dark">Post a photography job</Link>
+        </>}
+      </div>
+    );
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50/50 dark:bg-zinc-950/50 text-foreground">
+    <div className="min-h-screen bg-paper text-ink">
       <Header />
-
-      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
-        {/* Header Section */}
-        <section className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-xs font-semibold gap-1.5 border-border/80 bg-background text-muted-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Client Workspace
-              </Badge>
-              <span className="text-xs text-muted-foreground font-mono">Overview</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
-              Client Portal
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Welcome back, <span className="font-semibold text-foreground">{user.fullname}</span>. Manage your shoots, job posts, and creator bookings.
-            </p>
+      <main className="mx-auto max-w-[1320px] px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
+        <section className="flex flex-col gap-6 border-b border-line pb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-10">
+          <div className="max-w-[680px]">
+            <h1 className="font-serif text-[38px] leading-[1.04] tracking-[-0.05em] sm:text-5xl">Client dashboard</h1>
+            <p className="mt-3 max-w-[570px] text-[15px] leading-7 text-muted-foreground">Keep track of your photographer requests, upcoming shoots, and past bookings.</p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Button
-              size="sm"
-              asChild
-              className="rounded-xl text-xs font-bold h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs gap-1.5"
-            >
-              <Link href="/dashboard/client/post-job">
-                <Plus className="h-3.5 w-3.5" />
-                <span>Post a Job</span>
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="rounded-xl text-xs font-semibold h-9 px-3.5 border-border/80 bg-card hover:bg-muted shadow-xs gap-1.5"
-            >
-              <Link href="/photographers">
-                <Search className="h-3.5 w-3.5 text-primary" />
-                <span>Find Photographers</span>
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="rounded-xl text-xs font-semibold h-9 px-3.5 border-border/80 bg-card hover:bg-muted shadow-xs gap-1.5"
-            >
-              <Link href="/dashboard/client/jobs">
-                <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>My Jobs</span>
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="rounded-xl text-xs font-semibold h-9 px-3.5 border-border/80 bg-card hover:bg-muted shadow-xs gap-1.5"
-            >
-              <Link href="/profile">
-                <User className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Profile</span>
-              </Link>
-            </Button>
-          </div>
+          <Button asChild className="min-h-12 w-fit shrink-0 rounded-none px-5 text-sm font-semibold"><Link href="/photographers">Find photographers<ArrowUpRight className="size-4" aria-hidden="true" /></Link></Button>
         </section>
 
-        {/* Bento Metric Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {/* Card 1: Total Bookings */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs relative overflow-hidden flex flex-col justify-between gap-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
-                Total Bookings
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <Calendar className="h-4 w-4" />
+        <section className="grid gap-10 pt-8 lg:grid-cols-[minmax(0,1fr)_270px] lg:gap-16 lg:pt-10" aria-label="Booking management">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-b border-line-strong pb-4">
+              <div>
+                <h2 className="text-[22px] font-semibold tracking-tight">Your bookings</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Requests and shoots will appear here.</p>
               </div>
+              <span className="text-[13px] text-muted-foreground">{bookings.length} {bookings.length === 1 ? "booking" : "bookings"}</span>
             </div>
-
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
-                {bookings.length}
-              </div>
-              <p className="text-xs font-medium text-muted-foreground">Lifetime shoot requests</p>
-            </div>
-
-            <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Total investment</span>
-              <span className="font-semibold text-foreground font-mono">₦{totalSpent.toLocaleString()}</span>
-            </div>
-          </motion.div>
-
-          {/* Card 2: Upcoming */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.05 }}
-            className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs relative overflow-hidden flex flex-col justify-between gap-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
-                Upcoming Shoots
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Clock className="h-4 w-4" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
-                {upcomingBookings.length}
-              </div>
-              <p className="text-xs font-medium text-muted-foreground">Confirmed active sessions</p>
-            </div>
-
-            <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Status</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs">Ready on schedule</span>
-            </div>
-          </motion.div>
-
-          {/* Card 3: Pending */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs relative overflow-hidden flex flex-col justify-between gap-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
-                Awaiting Response
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <AlertCircle className="h-4 w-4" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
-                {pendingBookings.length}
-              </div>
-              <p className="text-xs font-medium text-muted-foreground">Pending photographer review</p>
-            </div>
-
-            <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Photographer action</span>
-              <span className="text-amber-600 dark:text-amber-400 font-semibold text-xs">Under review</span>
-            </div>
-          </motion.div>
-
-          {/* Card 4: Completed */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.15 }}
-            className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs relative overflow-hidden flex flex-col justify-between gap-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
-                Completed Shoots
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
-                {completedBookings.length}
-              </div>
-              <p className="text-xs font-medium text-muted-foreground">Finished deliverables</p>
-            </div>
-
-            <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Archive</span>
-              <span className="text-muted-foreground font-semibold text-xs">Completed</span>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* Bookings Section with Clean Segmented Tabs */}
-        <section className="space-y-6">
-          <Tabs defaultValue="upcoming" className="w-full space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-3">
-              <TabsList className="bg-card border border-border/80 p-1 rounded-2xl h-auto flex flex-wrap gap-1">
-                <TabsTrigger
-                  value="upcoming"
-                  className="rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-muted data-[state=active]:text-foreground transition-all gap-2"
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span>Upcoming Shoots</span>
-                  <Badge variant="secondary" className="rounded-full px-1.5 py-0 text-[10px] font-bold bg-background">
-                    {upcomingBookings.length}
-                  </Badge>
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="pending"
-                  className="rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-muted data-[state=active]:text-foreground transition-all gap-2"
-                >
-                  <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Pending Requests</span>
-                  {pendingBookings.length > 0 && (
-                    <span className="px-1.5 py-0 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
-                      {pendingBookings.length}
-                    </span>
-                  )}
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="completed"
-                  className="rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-muted data-[state=active]:text-foreground transition-all gap-2"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>Archived</span>
-                  <Badge variant="secondary" className="rounded-full px-1.5 py-0 text-[10px] font-bold bg-background">
-                    {completedBookings.length}
-                  </Badge>
-                </TabsTrigger>
+            <Tabs defaultValue="upcoming" className="w-full">
+              <TabsList aria-label="Booking status" className="flex h-auto w-full justify-start gap-6 overflow-x-auto rounded-none border-b border-line bg-transparent p-0 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <TabsTrigger value="upcoming" className="min-h-11 shrink-0 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 text-sm font-medium text-muted-foreground shadow-none hover:text-forest data-[state=active]:border-forest data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-forest data-[state=active]:shadow-none">Upcoming <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-forest">{upcomingBookings.length}</span></TabsTrigger>
+                <TabsTrigger value="pending" className="min-h-11 shrink-0 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 text-sm font-medium text-muted-foreground shadow-none hover:text-forest data-[state=active]:border-forest data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-forest data-[state=active]:shadow-none">Pending requests <span className="rounded-full bg-wash px-2 py-0.5 text-xs text-muted-foreground">{pendingBookings.length}</span></TabsTrigger>
+                <TabsTrigger value="archive" className="min-h-11 shrink-0 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 text-sm font-medium text-muted-foreground shadow-none hover:text-forest data-[state=active]:border-forest data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-forest data-[state=active]:shadow-none">Completed archive <span className="rounded-full bg-wash px-2 py-0.5 text-xs text-muted-foreground">{archiveBookings.length}</span></TabsTrigger>
               </TabsList>
+              <TabsContent value="upcoming" className="mt-0 focus-visible:outline-none">{renderContent(upcomingBookings, "upcoming")}</TabsContent>
+              <TabsContent value="pending" className="mt-0 focus-visible:outline-none">{renderContent(pendingBookings, "pending")}</TabsContent>
+              <TabsContent value="archive" className="mt-0 focus-visible:outline-none">{renderContent(archiveBookings, "archive")}</TabsContent>
+            </Tabs>
+          </div>
 
-              <div className="text-xs text-muted-foreground font-medium hidden sm:block">
-                Showing {bookings.length} total bookings
-              </div>
-            </div>
-
-            {/* Tab 1: Upcoming */}
-            <TabsContent value="upcoming" className="space-y-4 focus-visible:outline-none">
-              {loading ? (
-                <div className="py-20 text-center rounded-3xl border border-border/60 bg-card space-y-3">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                  <p className="text-xs font-medium text-muted-foreground">Loading your upcoming shoots...</p>
-                </div>
-              ) : upcomingBookings.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {upcomingBookings.map((booking) => (
-                    <ClientBookingCard 
-                      key={booking.id}
-                      booking={booking}
-                      showCancel
-                     
-                    onCancel={handleCancelBooking}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-16 px-6 text-center rounded-3xl border-2 border-dashed border-border/80 bg-card/50 flex flex-col items-center justify-center gap-3">
-                  <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
-                    <Calendar className="h-6 w-6" />
-                  </div>
-                  <div className="max-w-sm space-y-1">
-                    <h3 className="text-sm font-bold text-foreground">Your Schedule is Open</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      You do not have any confirmed upcoming photography sessions. Explore our curated talent to book your next shoot.
-                    </p>
-                  </div>
-                  <Button asChild size="sm" className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 mt-2 gap-1.5">
-                    <Link href="/photographers">
-                      <Search className="h-3.5 w-3.5" />
-                      <span>Find Photographers</span>
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Tab 2: Pending */}
-            <TabsContent value="pending" className="space-y-4 focus-visible:outline-none">
-              {loading ? (
-                <div className="py-20 text-center rounded-3xl border border-border/60 bg-card space-y-3">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                  <p className="text-xs font-medium text-muted-foreground">Loading pending requests...</p>
-                </div>
-              ) : pendingBookings.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                   {pendingBookings.map((booking) => (
-                     <ClientBookingCard
-                       key={booking.id}
-                       booking={booking}
-                       showCancel
-                       onCancel={handleCancelBooking}
-                     />
-                   ))}
-                </div>
-              ) : (
-                <div className="py-16 px-6 text-center rounded-3xl border-2 border-dashed border-border/80 bg-card/50 flex flex-col items-center justify-center gap-3">
-                  <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
-                    <Clock className="h-6 w-6" />
-                  </div>
-                  <div className="max-w-sm space-y-1">
-                    <h3 className="text-sm font-bold text-foreground">No Pending Requests</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      All your previous shoot requests have been answered by the respective photographers.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Tab 3: Completed */}
-            <TabsContent value="completed" className="space-y-4 focus-visible:outline-none">
-              {loading ? (
-                <div className="py-20 text-center rounded-3xl border border-border/60 bg-card space-y-3">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-                  <p className="text-xs font-medium text-muted-foreground">Loading archived shoots...</p>
-                </div>
-              ) : completedBookings.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4">
-                  {completedBookings.map((booking) => (
-                    <ClientBookingCard key={booking.id} booking={booking} showReview />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-16 px-6 text-center rounded-3xl border-2 border-dashed border-border/80 bg-card/50 flex flex-col items-center justify-center gap-3">
-                  <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
-                    <CheckCircle2 className="h-6 w-6" />
-                  </div>
-                  <div className="max-w-sm space-y-1">
-                    <h3 className="text-sm font-bold text-foreground">No Completed Shoots Yet</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Completed shoots and deliverables will appear here for your records and review.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          <aside className="space-y-8 lg:pt-1">
+            <section className="border-t border-line-strong pt-4">
+              <h2 className="text-[17px] font-semibold tracking-tight">Quick links</h2>
+              <nav aria-label="Client workspace links" className="mt-3 divide-y divide-line border-y border-line">
+                <QuickLink href="/photographers" label="Find photographers" />
+                <QuickLink href="/dashboard/client/post-job" label="Post a job" />
+                <QuickLink href="/dashboard/client/jobs" label="My jobs" />
+                <QuickLink href="/profile" label="Profile settings" />
+              </nav>
+            </section>
+            <section className="border-t border-line-strong pt-4">
+              <h2 className="text-[17px] font-semibold tracking-tight">Booking details</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Each request keeps the shoot type, date, time, location, duration, total, and your message together.</p>
+              <p className="mt-3 text-[13px] leading-5 text-muted-foreground">A pending request can be cancelled or continued by message. Its status remains visible in your request history.</p>
+            </section>
+          </aside>
         </section>
       </main>
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-[1320px] flex-col gap-3 px-5 py-6 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <Link href="/" className="w-fit font-semibold tracking-[-0.05em] text-ink">lensconnect</Link>
+          <p>© 2026 LensConnect</p>
+          <Link href="/messages" className="w-fit text-muted-foreground hover:text-forest">Messages</Link>
+        </div>
+      </footer>
     </div>
   );
 }
 
-function ClientBookingCard({
-  booking,
-  showCancel = false,
-  showReview = false,
-  
-  onCancel,
-}: {
-  booking: Booking;
-  showCancel?: boolean;
-  showReview?: boolean;
-  onCancel?: (bookingId: string, status:string) => void;
-}) {
-  const statusConfig = {
-    pending: {
-      icon: AlertCircle,
-      color: "text-amber-600 dark:text-amber-400",
-      bg: "bg-amber-500/10 border-amber-500/20",
-      label: "Awaiting Response",
-    },
-    confirmed: {
-      icon: CheckCircle2,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-500/10 border-emerald-500/20",
-      label: "Confirmed",
-    },
-    completed: {
-      icon: CheckCircle2,
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-blue-500/10 border-blue-500/20",
-      label: "Completed",
-    },
-  /*   accepted: {
-      icon: CheckCircle2,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-500/10 border-emerald-500/20",
-      label: "Accepted",
-    }, */
-    rejected: {
-      icon: XCircle,
-      color: "text-rose-600 dark:text-rose-400",
-      bg: "bg-rose-500/10 border-rose-500/20",
-      label: "Rejected",
-    },
-  };
+function QuickLink({ href, label }: { href: string; label: string }) {
+  return <Link href={href} className="group flex min-h-14 items-center justify-between gap-3 text-sm text-[#40453f] transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"><span>{label}</span><ArrowUpRight className="size-4 text-forest transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" /></Link>;
+}
 
-
-  const handleCancelBooking = async (bookingId: string, status: string) => {
-    if (!window.confirm("Are you sure you want to cancel this booking request?")) return;
-
-    const response = await fetch('/api/bookings', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId, status })
-    })
-    if (!response.ok) {
-      toast.error('Failed to cancel booking')
-      return
-    }
-    toast.success('Booking cancelled successfully')
-    onCancel?.(bookingId,status)
-
-  }; 
-
-  useEffect(()=>{
-    handleCancelBooking(booking.id,'rejected');
-  },[booking.id])
-
-
-  const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.pending;
-  const StatusIcon = status.icon;
-
-  const dateFormatted = booking.start_time
-    ? new Date(booking.start_time).toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
-    : "Date TBD";
-
-  const timeFormatted = booking.start_time
-    ? new Date(booking.start_time).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    })
-    : "Time TBD";
-
+function ClientBooking({ booking, updating, onCancel }: { booking: Booking; updating: boolean; onCancel: () => void }) {
+  const statusLabel = booking.status === "pending" ? "Pending" : booking.status === "confirmed" ? "Confirmed" : booking.status === "completed" ? "Completed" : "Declined";
+  const statusTone = booking.status === "pending" ? "text-[#765829]" : booking.status === "confirmed" ? "text-forest" : booking.status === "completed" ? "text-muted-foreground" : "text-[#8c352b]";
   const photographerName = booking.profiles?.full_name || "Photographer";
 
-  
-
   return (
-    <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs hover:border-primary/40 transition-all space-y-5">
-      {/* Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-primary/10 text-primary">
-              <Camera className="h-4 w-4" />
-            </div>
-            <h3 className="font-bold text-base sm:text-lg text-foreground capitalize">
-              {booking.shoot_type || "Photography"} Session
-            </h3>
-            <Badge
-              variant="outline"
-              className={`${status.bg} ${status.color} font-semibold px-2 py-0.5 text-[11px] rounded-full border`}
-            >
-              <StatusIcon className="h-3 w-3 mr-1" />
-              {status.label}
-            </Badge>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-foreground">
-              {photographerName.charAt(0).toUpperCase()}
-            </div>
-            <span>
-              Photographer: <strong className="text-foreground font-semibold">{photographerName}</strong>
-            </span>
-          </div>
+    <article className="border-b border-line py-6 sm:py-7">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className={`inline-flex items-center gap-2 text-[13px] font-semibold ${statusTone}`}>
+            {booking.status === "rejected" ? <XCircle className="size-4" aria-hidden="true" /> : booking.status === "completed" ? <CheckCircle2 className="size-4" aria-hidden="true" /> : booking.status === "confirmed" ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <Clock3 className="size-4" aria-hidden="true" />}
+            {statusLabel}
+          </p>
+          <h3 className="mt-2 break-words font-serif text-2xl tracking-tight">{booking.shoot_type || "Photography"} session</h3>
+          <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><UserRound className="size-4" aria-hidden="true" />Photographer: <span className="font-medium text-ink">{photographerName}</span></p>
         </div>
-
-        <div className="sm:text-right flex sm:flex-col items-baseline sm:items-end justify-between gap-1">
-          <div className="text-xl sm:text-2xl font-extrabold font-mono text-primary">
-            ₦{(Number(booking.total_price) || 0).toLocaleString()}
-          </div>
-          <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-            Total Cost
-          </span>
+        <div className="text-right">
+          <p className="text-lg font-semibold">{formatMoney(Number(booking.total_price) || 0)}</p>
+          <p className="text-xs text-muted-foreground">Booking total</p>
         </div>
       </div>
-
-      {/* Details Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-        <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-muted/40 border border-border/60">
-          <Calendar className="h-4 w-4 text-primary shrink-0" />
-          <div className="min-w-0">
-            <span className="text-[10px] text-muted-foreground block font-medium">Session Date</span>
-            <span className="font-semibold text-foreground truncate block">{dateFormatted}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-muted/40 border border-border/60">
-          <Clock className="h-4 w-4 text-primary shrink-0" />
-          <div className="min-w-0">
-            <span className="text-[10px] text-muted-foreground block font-medium">Time & Duration</span>
-            <span className="font-semibold text-foreground truncate block">
-              {timeFormatted} ({booking.duration_hours || 1} hrs)
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-muted/40 border border-border/60">
-          <MapPin className="h-4 w-4 text-primary shrink-0" />
-          <div className="min-w-0">
-            <span className="text-[10px] text-muted-foreground block font-medium">Location</span>
-            <span className="font-semibold text-foreground truncate block">
-              {booking.location || "To be arranged"}
-            </span>
-          </div>
+      <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-3">
+        <div><dt className="text-[13px] text-muted-foreground">Date &amp; time</dt><dd className="mt-1 font-medium">{formatDate(booking.start_time)} · {formatTime(booking.start_time)}</dd></div>
+        <div><dt className="text-[13px] text-muted-foreground">Duration</dt><dd className="mt-1 font-medium">{booking.duration_hours || 1} {booking.duration_hours === 1 ? "hour" : "hours"}</dd></div>
+        <div><dt className="text-[13px] text-muted-foreground">Location</dt><dd className="mt-1 flex items-start gap-1.5 font-medium"><MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" /><span>{booking.location || "To be arranged"}</span></dd></div>
+      </dl>
+      {booking.message && <div className="mt-4 border-t border-line pt-4"><p className="text-[13px] font-medium text-muted-foreground">Project notes</p><p className="mt-1 whitespace-pre-line text-sm leading-6">{booking.message}</p></div>}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+        <Link href={`/messages?to=${booking.photographer_id}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-forest underline underline-offset-4 hover:text-forest-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"><MessageSquare className="size-4" aria-hidden="true" />Message photographer</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {booking.status !== "rejected" && booking.status !== "completed" && <Button type="button" variant="outline" disabled={updating} onClick={onCancel} className="min-h-11 rounded-none border-line-strong px-4 text-sm font-semibold text-[#6c3b31] hover:bg-[#f8f3f0]">{updating ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}Cancel request</Button>}
+          {booking.status === "completed" && <Button asChild type="button" variant="outline" className="min-h-11 rounded-none border-line-strong px-4 text-sm font-semibold"><Link href={`/photographer/review/${booking.photographer_id}`}>Write a review</Link></Button>}
         </div>
       </div>
-
-      {/* Message Note if present */}
-      {booking.message && (
-        <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/50 text-xs text-muted-foreground">
-          <span className="font-semibold text-foreground block mb-0.5">Booking Note:</span>
-          <p className="italic text-foreground/80">"{booking.message}"</p>
-        </div>
-      )}
-
-      {/* Action Buttons Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <Button
-          size="sm"
-          variant="outline"
-          asChild
-          className="rounded-xl text-xs font-semibold h-8.5 px-3 border-border/80 hover:bg-muted text-muted-foreground hover:text-foreground gap-1.5"
-        >
-          <Link href={`/messages?to=${booking.photographer_id}`}>
-            <MessageSquare className="h-3.5 w-3.5 text-primary" />
-            <span>Message Photographer</span>
-          </Link>
-        </Button>
-
-        <div className="flex items-center gap-2">
-          {showCancel && booking.status !== "rejected" && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-xl text-xs font-semibold h-8.5 px-3 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-900/50 dark:hover:bg-rose-950/50"
-              onClick={() => onCancel?.(booking.id,'rejected')}
-            >
-              Cancel Request
-            </Button>
-          )}
-
-          {showReview && (
-            <Button
-              size="sm"
-              variant="outline"
-              asChild
-              className="rounded-xl text-xs font-semibold h-8.5 px-3 border-border/80 hover:bg-muted"
-            >
-              <Link href={`/photographer/review/${booking.photographer_id}`}>
-                Write Review
-              </Link>
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
+    </article>
   );
 }

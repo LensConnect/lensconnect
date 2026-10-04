@@ -1,0 +1,23 @@
+.landing {
+  --lc-paper: #faf9f6;
+  --lc-ink: #171717;
+  --lc-ink-soft: #30332f;
+  --lc-forest: #244c3a;
+  --lc-forest-dark: #193b2b;
+  --lc-muted: #555952;
+  --lc-muted-strong: #454943;
+  --lc-line: #e7e5e0;
+  --lc-line-soft: #efeee9;
+  --lc-field-line: #d9d8d1;
+  --lc-sand: #f2f0ea;
+  color: var(--lc-ink);
+  background: var(--lc-paper);
+  font-family: var(--lc-font-sans), sans-serif;
+}
+
+.landing h1,
+.landing h2,
+.landing h3,
+.landing .displayHeading {
+  font-family: var(--lc-font-display), sans-serif;
+}

@@ -32,7 +32,12 @@ export async function GET(req:NextRequest) {
         }
 
 
-        const [data] = await db.execute(sql`SELECT * FROM photographer_profiles WHERE userId = ${id} OR id = ${id}`);
+        const [data] = await db.execute(sql`
+            SELECT photographer_profiles.*, profiles.website AS website
+            FROM photographer_profiles
+            LEFT JOIN profiles ON profiles.userId = photographer_profiles.userId
+            WHERE photographer_profiles.userId = ${id} OR photographer_profiles.id = ${id}
+        `);
         const normalizedData = Array.isArray(data)
             ? data.map((profile) => ({
                 ...profile,

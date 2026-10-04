@@ -1,6 +1,6 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { DM_Sans, Newsreader } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth-context";
 import { Providers } from "@/components/providers";
@@ -10,9 +10,16 @@ import { Suspense } from "react";
 import "@uploadthing/react/styles.css"; 
 
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700"],
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-newsreader",
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${dmSans.variable} ${newsreader.variable} font-sans antialiased`} suppressHydrationWarning>
         <Providers>
           <Suspense fallback={<div>Loading...</div>}>
             <AuthProvider>{children}</AuthProvider>

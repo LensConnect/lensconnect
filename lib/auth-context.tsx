@@ -124,9 +124,18 @@ const data = await response.json();
       }),
     });
 
-    if (!response.ok) {
-      throw new Error("Signup failed");
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.user) {
+      throw new Error(data?.error || "Signup failed");
     }
+
+    setUser({
+      id: String(data.user.id),
+      email: data.user.email || email,
+      fullname: data.user.fullname || fullname,
+      role: (data.user.role as UserRole) || role,
+      createdAt: new Date(),
+    });
   };
 
   const logout = async () => {

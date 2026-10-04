@@ -44,7 +44,10 @@ const specialties = [
   "Editorial",
   "Studio",
   "Architecture",
+  "Lifestyle",
 ];
+
+const normalizeSpecialty = (specialty: string) => specialty.trim().toLowerCase().replace(/s$/, "");
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,6 +110,17 @@ export default function SearchPage() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const specialtyParam = params.get("specialty");
+    const matchingSpecialty = specialtyParam
+      ? specialties.find((specialty) => normalizeSpecialty(specialty) === normalizeSpecialty(specialtyParam))
+      : undefined;
+
+    setLocation(params.get("location") || "");
+    setSelectedSpecialties(matchingSpecialty ? [matchingSpecialty] : []);
+  }, []);
+
+  useEffect(() => {
     fetchPhotographers();
   }, []);
 
@@ -122,7 +136,11 @@ export default function SearchPage() {
       if (searchQuery && !photographer.fullname.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (location && !photographer.location.toLowerCase().includes(location.toLowerCase())) return false;
       if (selectedSpecialties.length > 0) {
-        const hasMatchingSpecialty = photographer.specialties.some((s) => selectedSpecialties.includes(s));
+        const hasMatchingSpecialty = photographer.specialties.some((photographerSpecialty) =>
+          selectedSpecialties.some((selectedSpecialty) =>
+            normalizeSpecialty(selectedSpecialty) === normalizeSpecialty(photographerSpecialty)
+          )
+        );
         if (!hasMatchingSpecialty) return false;
       }
       if (photographer.hourlyRate < priceRange[0]) return false;
@@ -219,7 +237,7 @@ export default function SearchPage() {
           </div>
 
           {/* Natural Language / AI Search Input */}
-          <div className="rounded-2xl border border-border/80 bg-background p-2 sm:p-2.5 shadow-sm max-w-4xl space-y-2">
+          <div id="smart-search" className="rounded-2xl border border-border/80 bg-background p-2 sm:p-2.5 shadow-sm max-w-4xl space-y-2">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

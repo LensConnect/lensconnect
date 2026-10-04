@@ -112,6 +112,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         result: {
           id: photographer.id,
+          photographerProfileId: pp?.id,
           fullname: pp?.fullname || photographer.fullname,
           email: pp?.email || photographer.email,
           role: photographer.role,
@@ -192,7 +193,7 @@ export async function PATCH(req: NextRequest) {
 
     if (dbRole === 'photographer') {
       const allowedFields = [
-        'fullname', 'email', 'phoneNumber', 'bio', 'location',
+        'fullname', 'email', 'phoneNumber', 'bio', 'location', 'website',
         'experience', 'hourlyRate', 'specialties', 'availability',
         'portfolio_image_url', 'profile_image_url'
       ];
@@ -224,6 +225,8 @@ export async function PATCH(req: NextRequest) {
         if (key === 'profile_image_url') {
           photoUpdates[key] = value;
           profileUpdates['imageUrl'] = value;
+        } else if (key === 'website') {
+          profileUpdates[key] = value;
         } else {
           photoUpdates[key] = value;
         }

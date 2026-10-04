@@ -1,89 +1,39 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { generateReactHelpers } from "@uploadthing/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import Image from 'next/image';
-
-import { generateReactHelpers } from "@uploadthing/react";
-import type { OurFileRouter } from "@/app/api/uploadthing/core";
-
-const { useUploadThing } = generateReactHelpers<OurFileRouter>();
-import { useAuth } from "@/lib/auth-context";
-import { Header } from "@/components/header";
-import { saveProfileImage } from "@/app/actions/profile";
-import { NairaSign } from "@/components/NairaSign";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import {
-  Camera,
-  MapPin,
-  Mail,
-  Phone,
-  Globe,
-  Briefcase,
-  ExternalLink,
-  Save,
-  Loader2,
-  Image as ImageIcon,
   ArrowLeft,
-  User as UserIcon,
-  CheckCircle2,
-  DollarSign,
-  Clock,
-  Sparkles,
-  Eye,
-  Plus,
-  ShieldCheck,
+  ArrowUpRight,
+  Camera,
   Check,
-  ChevronRight,
-  AlertCircle,
-  RefreshCw,
-  
+  Eye,
+  Image as ImageIcon,
+  Info,
+  LoaderCircle,
+  MapPin,
+  Upload,
+  UserRound,
 } from "lucide-react";
 
+import { saveProfileImage } from "@/app/actions/profile";
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
+import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/lib/auth-context";
 
-type UserRole = "photographer" | "client";
+const { useUploadThing } = generateReactHelpers<OurFileRouter>();
 
-interface ProfileData {
-  id: number;
-  fullname: string;
-  email: string;
-  role: UserRole;
-  userId?: number;
-  phoneNumber?: string;
-  bio?: string;
-  location?: string;
-  hourlyRate?: number;
-  hourly_rate?: number;
-  experience?: number;
-  specialties?: string[];
-  portfolio_url?: string;
-  profile_image_url?: string;
-  website?: string;
-  availability?: boolean;
-}
-
-interface PortfolioItem {
-  id: number | string;
-  title: string;
-  description?: string;
-  location?: string;
-  category?: string[];
-  image_url?: string[];
-}
-
-const AVAILABLE_SPECIALTIES = [
+const specialties = [
   "Wedding",
   "Portrait",
   "Event",
@@ -101,1084 +51,520 @@ const AVAILABLE_SPECIALTIES = [
   "Documentary",
 ];
 
+const formatNaira = (amount: number) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+type UserRole = "photographer" | "client";
+
+type ProfileData = {
+  id: number;
+  photographerProfileId?: number;
+  fullname: string;
+  email: string;
+  role: UserRole;
+  phoneNumber?: string;
+  bio?: string;
+  location?: string;
+  hourlyRate?: number;
+  hourly_rate?: number;
+  experience?: number;
+  specialties?: string[];
+  profile_image_url?: string;
+  website?: string;
+  availability?: boolean;
+};
+
+type PortfolioItem = {
+  id: number | string;
+  title: string;
+  description?: string;
+  location?: string;
+  category?: string[];
+  image_url?: string[] | string;
+};
+
 export default function ProfilePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useAuth();
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [activeTab, setActiveTab] = useState("general");
+  const [savedProfile, setSavedProfile] = useState<ProfileData | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const { startUpload } = useUploadThing("profileImage", {
-    onClientUploadComplete: async (res) => {
-      if (res && res.length > 0) {
-        const uploadedUrl = res[0].url;
-        setProfile((prev) => {
-          if (!prev) return null;
-          return { ...prev, profile_image_url: uploadedUrl };
-        });
-        setIsDirty(true);
-
-        const dbResult = await saveProfileImage(Number(user?.id), uploadedUrl);
-        if (!dbResult.success) {
-          toast.error(dbResult.error || "Failed to save profile image to database.");
-        }
-
-        queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
-        toast.success("Profile photo updated successfully!");
+    onClientUploadComplete: async (result) => {
+      const uploadedUrl = result?.[0]?.url;
+      if (!uploadedUrl || !user?.id) {
+        setUploading(false);
+        return;
       }
+
+      const saved = await saveProfileImage(Number(user.id), uploadedUrl);
+      if (!saved.success) {
+        toast.error(saved.error || "Could not save the profile photo.");
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+
+      setProfile((current) => current ? { ...current, profile_image_url: uploadedUrl } : current);
+      setSavedProfile((current) => current ? { ...current, profile_image_url: uploadedUrl } : current);
+      await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      toast.success("Profile photo saved.");
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
     onUploadError: (error) => {
-      toast.error(error.message || "Failed to upload image.");
+      toast.error(error.message || "Could not upload the profile photo.");
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
   });
 
-  // Authentication redirect
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    }
+    if (!authLoading && !user) router.replace("/login");
   }, [authLoading, user, router]);
 
-  // Fetch Profile Data
   const {
-    isLoading: profileLoading,
-    error: profileError,
     data: profileData,
+    error: profileError,
+    isLoading: profileLoading,
     refetch: refetchProfile,
   } = useQuery<ProfileData | null>({
     queryKey: ["profile", user?.id],
-    enabled: !!user?.id && !authLoading,
+    enabled: Boolean(user?.id) && !authLoading,
     queryFn: async () => {
       if (!user?.id) return null;
-
-      const response = await fetch(`/api/profiles?userId=${user.id}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
+      const response = await fetch(`/api/profiles?userId=${user.id}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to fetch profile data");
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Could not load your profile.");
       }
-
       const data = await response.json();
       return data.result ?? null;
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  // Sync profile data to local form state
   useEffect(() => {
-    if (profileData) {
-      setProfile({
-        ...profileData,
-        hourlyRate: profileData.hourlyRate ?? profileData.hourly_rate ?? 0,
-        experience: profileData.experience ?? 0,
-        specialties: Array.isArray(profileData.specialties) ? profileData.specialties : [],
-        phoneNumber: profileData.phoneNumber || "",
-        bio: profileData.bio || "",
-        location: profileData.location || "",
-        website: profileData.website || "",
-        portfolio_url: profileData.portfolio_url || "",
-        profile_image_url: profileData.profile_image_url || "",
-        availability: profileData.availability ?? true,
-      });
-      setIsDirty(false);
-    }
+    if (!profileData) return;
+    const normalized: ProfileData = {
+      ...profileData,
+      hourlyRate: profileData.hourlyRate ?? profileData.hourly_rate ?? 0,
+      experience: profileData.experience ?? 0,
+      specialties: Array.isArray(profileData.specialties) ? profileData.specialties : [],
+      phoneNumber: profileData.phoneNumber || "",
+      bio: profileData.bio || "",
+      location: profileData.location || "",
+      website: profileData.website || "",
+      profile_image_url: profileData.profile_image_url || "",
+      availability: profileData.availability ?? true,
+    };
+    setProfile(normalized);
+    setSavedProfile(normalized);
+    setIsDirty(false);
   }, [profileData]);
 
-  // Fetch Photographer Portfolios if applicable
-  const { data: portfoliosData } = useQuery<{ portfolios: PortfolioItem[]; success: boolean }>({
-    queryKey: ["portfolios", profile?.id],
-    enabled: !!profile?.id && profile?.role === "photographer",
+  const photographerProfileId = profile?.photographerProfileId;
+  const { data: portfolioResponse } = useQuery<{ portfolios?: PortfolioItem[] }>({
+    queryKey: ["portfolios", photographerProfileId],
+    enabled: Boolean(photographerProfileId) && profile?.role === "photographer",
     queryFn: async () => {
-      if (!profile?.id) return { portfolios: [], success: true };
-      const res = await fetch(`/api/portfolios?photographerId=${profile.id}`);
-      if (!res.ok) return { portfolios: [], success: false };
-      return res.json();
+      const response = await fetch(`/api/portfolios?photographerId=${photographerProfileId}`);
+      if (!response.ok) throw new Error("Could not load portfolio collections.");
+      return response.json();
     },
     staleTime: 1000 * 60 * 3,
   });
+  const portfolios = portfolioResponse?.portfolios ?? [];
+  const isPhotographer = profile?.role === "photographer";
+  const publicProfileHref = profile?.photographerProfileId
+    ? `/photographer/${encodeURIComponent(profile.fullname || "photographer")}/${profile.photographerProfileId}`
+    : null;
 
-  const portfolioItems: PortfolioItem[] = portfoliosData?.portfolios || [];
-
-  // Form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    let processedValue: any = value;
-
-    if (name === "hourlyRate" || name === "experience") {
-      processedValue = value === "" ? "" : Math.max(0, Number(value));
-    }
-
-    setProfile((prev) => {
-      if (!prev) return null;
-      return { ...prev, [name]: processedValue };
-    });
+  const updateField = (name: keyof ProfileData, value: ProfileData[keyof ProfileData]) => {
+    setProfile((current) => current ? { ...current, [name]: value } : current);
     setIsDirty(true);
   };
 
-  const handleToggleAvailability = (checked: boolean) => {
-    setProfile((prev) => {
-      if (!prev) return null;
-      return { ...prev, availability: checked };
-    });
-    setIsDirty(true);
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = event.target;
+    const numericField = name === "hourlyRate" || name === "experience";
+    updateField(
+      name as keyof ProfileData,
+      numericField ? (value === "" ? undefined : Math.max(0, Number(value))) : value,
+    );
   };
 
   const toggleSpecialty = (specialty: string) => {
-    setProfile((prev) => {
-      if (!prev) return null;
-      const current = prev.specialties || [];
-      const updated = current.includes(specialty)
+    if (!profile) return;
+    const current = profile.specialties ?? [];
+    updateField(
+      "specialties",
+      current.includes(specialty)
         ? current.filter((item) => item !== specialty)
-        : [...current, specialty];
-
-      return { ...prev, specialties: updated };
-    });
-    setIsDirty(true);
+        : [...current, specialty],
+    );
   };
 
-  // Avatar Image Upload via UploadThing & Database Sync
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file || !profile || !user?.id) return;
-
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file");
+      toast.error("Choose an image file.");
       return;
     }
-
     if (file.size > 4 * 1024 * 1024) {
-      toast.error("Image size must be under 4MB");
+      toast.error("Choose an image under 4 MB.");
       return;
     }
-
     setUploading(true);
     await startUpload([file]);
   };
 
-  // Save full profile changes
   const handleSave = async () => {
-    if (!profile || !user?.id) return;
-
-    if (!profile.fullname?.trim()) {
-      toast.error("Full name cannot be empty");
+    if (!profile || !user?.id || saving || !isDirty) return;
+    if (!profile.fullname.trim()) {
+      toast.error("Full name is required.");
+      document.getElementById("fullname")?.focus();
       return;
     }
 
+    const payload: Record<string, unknown> = {
+      userId: user.id,
+      fullname: profile.fullname.trim(),
+      bio: profile.bio || "",
+      location: profile.location || "",
+      phoneNumber: profile.phoneNumber || "",
+      website: profile.website || "",
+    };
+    if (isPhotographer) {
+      payload.hourlyRate = Number(profile.hourlyRate) || 0;
+      payload.experience = Number(profile.experience) || 0;
+      payload.specialties = profile.specialties || [];
+      payload.availability = profile.availability ?? true;
+    }
+
+    setSaving(true);
     try {
-      setSaving(true);
-
-      const payload: Record<string, any> = {
-        userId: user.id,
-        fullname: profile.fullname.trim(),
-        bio: profile.bio || "",
-        location: profile.location || "",
-        phoneNumber: profile.phoneNumber || "",
-      };
-
-      if (profile.role === "photographer") {
-        payload.hourlyRate = profile.hourlyRate ? Number(profile.hourlyRate) : 0;
-        payload.experience = profile.experience ? Number(profile.experience) : 0;
-        payload.specialties = profile.specialties || [];
-        payload.profile_image_url = profile.profile_image_url || "";
-        payload.availability = profile.availability ?? true;
-        payload.website = profile.website || "";
-      }
-
-      if (profile.role === "client") {
-        payload.imageUrl = profile.profile_image_url || "";
-        payload.website = profile.website || "";
-        payload.profile_image_url = profile.profile_image_url || "";
-      }
-
       const response = await fetch(`/api/profiles?userId=${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setIsDirty(false);
-        queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
-        toast.success("Profile saved successfully!");
-      } else {
-        toast.error(data.error || "Failed to save profile changes");
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "Could not save your profile.");
       }
-    } catch (error: any) {
-      console.error("Error saving profile:", error);
-      toast.error("An unexpected error occurred while saving.");
+      const saved = { ...profile, fullname: profile.fullname.trim() };
+      setProfile(saved);
+      setSavedProfile(saved);
+      setIsDirty(false);
+      await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      toast.success("Profile changes saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save your profile.");
     } finally {
       setSaving(false);
     }
   };
 
-  // Profile Completeness Calculation
-  const calculateCompleteness = () => {
-    if (!profile) return 0;
-    let score = 0;
-    let total = 5;
-    if (profile.fullname) score++;
-    if (profile.profile_image_url) score++;
-    if (profile.bio) score++;
-    if (profile.location) score++;
-    if (profile.phoneNumber) score++;
-
-    if (profile.role === "photographer") {
-      total += 3;
-      if (profile.hourlyRate && profile.hourlyRate > 0) score++;
-      if (profile.specialties && profile.specialties.length > 0) score++;
-      if (portfolioItems.length > 0) score++;
-    }
-
-    return Math.round((score / total) * 100);
-  };
-
-  const completeness = calculateCompleteness();
-  const isPhotographer = profile?.role === "photographer";
-
-  if (profileLoading || authLoading) {
+  if (authLoading || profileLoading || !user) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-paper text-ink">
         <Header />
-        <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-foreground">Loading your profile...</p>
-        </div>
+        <main className="mx-auto flex min-h-[55vh] max-w-7xl flex-col items-center justify-center gap-3 px-5 text-center" role="status">
+          <LoaderCircle className="size-6 animate-spin text-forest" aria-hidden="true" />
+          <p className="text-sm text-muted-foreground">Loading your profile…</p>
+        </main>
       </div>
     );
   }
 
   if (profileError || !profile) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-paper text-ink">
         <Header />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center max-w-md mx-auto">
-          <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
-            <AlertCircle className="h-6 w-6" />
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">Failed to Load Profile</h2>
-          <p className="text-sm text-muted-foreground">
-            {profileError instanceof Error
-              ? profileError.message
-              : "We could not find your profile information. Please verify your connection and try again."}
+        <main className="mx-auto flex min-h-[55vh] max-w-xl flex-col items-start justify-center gap-4 px-5 py-12">
+          <h1 className="font-serif text-4xl tracking-tight">Profile unavailable</h1>
+          <p className="text-[15px] leading-7 text-muted-foreground">
+            {profileError instanceof Error ? profileError.message : "We couldn’t find profile details for this account."}
           </p>
-          <div className="flex items-center gap-3 mt-2">
-            <Button variant="outline" asChild>
-              <Link href="/">Return Home</Link>
-            </Button>
-            <Button onClick={() => refetchProfile()} className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Try Again
-            </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" asChild><Link href="/">Return home</Link></Button>
+            <Button onClick={() => void refetchProfile()}>Try again</Button>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
+  const preview = savedProfile ?? profile;
+  const previewImage = preview.profile_image_url;
+  const previewRate = Number(preview.hourlyRate) || 0;
+
   return (
-    <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950/50 text-foreground">
+    <div className="min-h-screen bg-paper text-ink">
       <Header />
-
-      {/* Top Action & Navigation Bar */}
-      <div className="sticky top-16 z-30 border-b border-border/80 bg-background/85 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Link
-              href={isPhotographer ? "/dashboard" : "/dashboard/client"}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 rounded-lg hover:bg-muted"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Dashboard</span>
+      <div className="sticky top-[72px] z-30 border-b border-line bg-paper/95 backdrop-blur-md">
+        <div className="mx-auto flex min-h-[60px] max-w-[1320px] items-center justify-between gap-3 px-5 sm:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href={isPhotographer ? "/dashboard" : "/dashboard/client"} aria-label="Back to dashboard" className="inline-flex size-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+              <ArrowLeft className="size-[18px]" aria-hidden="true" />
             </Link>
-            <span className="text-muted-foreground/40 font-mono text-sm">/</span>
-            <span className="text-xs font-semibold text-foreground">Profile Settings</span>
+            <span className="hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold">Profile settings</p>
+              <p className={`text-xs ${isDirty ? "text-[#765829]" : "text-muted-foreground"}`} role="status" aria-live="polite">
+                {isDirty ? "Unsaved changes" : "All changes saved"}
+              </p>
+            </div>
           </div>
-
-          <div className="flex items-center gap-2.5">
-            {isPhotographer && (
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="hidden sm:inline-flex text-xs font-semibold h-9 rounded-xl border-border hover:bg-muted gap-1.5"
-              >
-                <Link
-                  href={`/photographer/${encodeURIComponent(profile.fullname || "creator")}/${profile.id}`}
-                  target="_blank"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  <span>Public View</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                </Link>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            {isPhotographer && publicProfileHref && (
+              <Button variant="ghost" asChild className="hidden min-h-11 px-3 text-[13px] font-semibold text-forest sm:inline-flex">
+                <Link href={publicProfileHref} target="_blank" rel="noreferrer"><Eye className="size-4" aria-hidden="true" />Public profile</Link>
               </Button>
             )}
-
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={saving || !isDirty}
-              className={`h-9 px-4 rounded-xl text-xs font-bold transition-all gap-1.5 ${
-                isDirty
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-muted cursor-default opacity-80"
-              }`}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-3.5 w-3.5" />
-                  <span>{isDirty ? "Save Changes" : "Saved"}</span>
-                </>
-              )}
+            <Button onClick={handleSave} disabled={saving || !isDirty} className="min-h-11 rounded-none px-4 text-[13px] font-semibold sm:px-5">
+              {saving ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Check className="size-4" aria-hidden="true" />}
+              {saving ? "Saving…" : "Save changes"}
             </Button>
           </div>
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Profile Hero Header */}
-        <section className="relative rounded-3xl border border-border/80 bg-card overflow-hidden shadow-xs">
-          {/* Subtle Ambient Banner */}
-          <div className="h-32 sm:h-40 w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#FF4F01_1px,transparent_1px)] [background-size:16px_16px]" />
-            <div className="absolute -top-12 -right-12 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-          </div>
+      <main className="mx-auto max-w-[1320px] px-5 pb-20 pt-8 sm:px-8 sm:pt-11">
+        <div className="mb-8 max-w-[710px] sm:mb-10">
+          <h1 className="font-serif text-[38px] leading-[1.04] tracking-[-0.045em] sm:text-5xl">Edit the details clients see.</h1>
+          <p className="mt-3 max-w-[620px] text-[15px] leading-7 text-muted-foreground">
+            Keep your contact information, photography specialties, and portfolio details up to date.
+          </p>
+        </div>
 
-          <div className="px-6 pb-6 pt-0 sm:px-8 sm:pb-8 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 -mt-16 sm:-mt-20">
-            {/* Avatar with Camera Trigger */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
-              <div className="relative group">
-                <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full  p-1 bg-card ring-4 ring-background shadow-md overflow-hidden flex items-center justify-center">
-                  {profile.profile_image_url ? (
-                    <Image
-                      src={profile.profile_image_url}
-                      alt={profile.fullname}
-                      width={500}
-                      height={500}
-                      className="h-full w-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="h-full w-full rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
-                      <UserIcon className="h-12 w-12 stroke-[1.5]" />
-                    </div>
-                  )}
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-12">
+          <div className="min-w-0">
+            <nav aria-label="Profile sections" className="mb-5 flex gap-1 overflow-x-auto border-b border-line text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <a className="inline-flex min-h-12 shrink-0 items-center px-3 font-semibold text-forest hover:text-forest-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest sm:px-4" href="#general-info">General Info</a>
+              {isPhotographer && <>
+                <a className="inline-flex min-h-12 shrink-0 items-center px-3 font-medium text-muted-foreground hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest sm:px-4" href="#rates-specialties">Rates &amp; Specialties</a>
+                <a className="inline-flex min-h-12 shrink-0 items-center px-3 font-medium text-muted-foreground hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest sm:px-4" href="#works-portfolio">Works &amp; Portfolio</a>
+              </>}
+              <a className="inline-flex min-h-12 shrink-0 items-center px-3 font-medium text-muted-foreground hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest sm:px-4" href="#account">Account</a>
+            </nav>
 
-                  {/* Upload Overlay */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="absolute inset-1 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1 text-white backdrop-blur-[2px] cursor-pointer"
-                    title="Change profile photo"
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <>
-                        <Camera className="h-5 w-5" />
-                        <span className="text-[10px] font-semibold tracking-wide">Change</span>
-                      </>
-                    )}
-                  </button>
+            <div className="divide-y divide-line border-y border-line bg-white">
+              <section id="general-info" aria-labelledby="general-heading" className="scroll-mt-36 px-5 py-6 sm:px-7 sm:py-7">
+                <div className="mb-6">
+                  <h2 id="general-heading" className="text-[17px] font-semibold tracking-tight">General Info</h2>
+                  <p className="mt-1 text-[13px] leading-5 text-muted-foreground">Your name and contact details appear on your profile.</p>
                 </div>
 
-                {/* Floating upload button for touch devices */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="sm:hidden absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md ring-2 ring-background"
-                  aria-label="Upload photo"
-                >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                </button>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/jpg"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                    {profile.fullname || "Unnamed Profile"}
-                  </h1>
-                  <Badge
-                    variant="secondary"
-                    className="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize border border-border/60"
-                  >
-                    {profile.role}
-                  </Badge>
-
-                  {isPhotographer && (
-                    <Badge
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium border gap-1 ${
-                        profile.availability
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                          : "bg-zinc-500/10 text-zinc-500 border-zinc-500/20"
-                      }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          profile.availability ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"
-                        }`}
-                      />
-                      {profile.availability ? "Available for hire" : "Unavailable"}
-                    </Badge>
-                  )}
+                <div className="mb-6 flex flex-col gap-4 bg-wash p-4 sm:flex-row sm:items-center">
+                  <div className="flex size-[76px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-dashed border-line-strong bg-paper text-muted-foreground">
+                    {profile.profile_image_url ? <Image src={profile.profile_image_url} alt={`${profile.fullname} profile photo`} width={152} height={152} className="size-full object-cover" unoptimized /> : <Camera className="size-6" aria-hidden="true" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">Profile photo</p>
+                    <p className="mt-1 text-[13px] leading-5 text-muted-foreground">Choose a clear portrait for your public profile. Photo uploads are saved as soon as they finish.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Maximum file size: 4 MB.</p>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleImageUpload} aria-label="Choose profile photo" />
+                  <Button type="button" variant="outline" disabled={uploading} onClick={() => fileInputRef.current?.click()} className="min-h-11 shrink-0 rounded-none bg-white px-4 text-[13px] font-semibold">
+                    {uploading ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Upload className="size-4" aria-hidden="true" />}
+                    {uploading ? "Uploading…" : "Upload photo"}
+                  </Button>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Mail className="h-3.5 w-3.5 text-muted-foreground/70" />
-                    {profile.email}
-                  </span>
-                  {profile.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 text-muted-foreground/70" />
-                      {profile.location}
-                    </span>
-                  )}
-                  {isPhotographer && Number(profile.hourlyRate) > 0 && (
-                    <span className="flex items-center gap-1 font-medium text-foreground">
-                      <DollarSign className="h-3.5 w-3.5 text-primary" />
-                      {profile.hourlyRate}/hr
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Completeness Pill */}
-            <div className="w-full sm:w-60 bg-muted/60 rounded-2xl p-3 border border-border/50">
-              <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                <span className="text-muted-foreground">Profile Strength</span>
-                <span className="text-primary font-bold">{completeness}%</span>
-              </div>
-              <Progress value={completeness} className="h-1.5 bg-background" />
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                {completeness === 100
-                  ? "Great job! Profile is fully optimized."
-                  : "Complete your profile to build trust with clients."}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Main Content: Tabs + Dual-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Main Form Tabs */}
-          <div className="lg:col-span-8 space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-              <TabsList className="bg-card border border-border/80 p-1 rounded-2xl h-auto flex flex-wrap gap-1 w-full justify-start">
-                <TabsTrigger
-                  value="general"
-                  className="rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-muted data-[state=active]:text-foreground transition-all gap-1.5"
-                >
-                  <UserIcon className="h-3.5 w-3.5" />
-                  <span>General Info</span>
-                </TabsTrigger>
-
-                {isPhotographer && (
-                  <>
-                    <TabsTrigger
-                      value="professional"
-                      className="rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-muted data-[state=active]:text-foreground transition-all gap-1.5"
-                    >
-                      <Briefcase className="h-3.5 w-3.5" />
-                      <span>Rates & Specialties</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="portfolio"
-                      className="rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-muted data-[state=active]:text-foreground transition-all gap-1.5"
-                    >
-                      <ImageIcon className="h-3.5 w-3.5" />
-                      <span>Works & Portfolio</span>
-                      {portfolioItems.length > 0 && (
-                        <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
-                          {portfolioItems.length}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                  </>
-                )}
-
-                <TabsTrigger
-                  value="account"
-                  className="rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-muted data-[state=active]:text-foreground transition-all gap-1.5"
-                >
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  <span>Account</span>
-                </TabsTrigger>
-              </TabsList>
-
-              {/* ── TAB 1: General Info ── */}
-              <TabsContent value="general" className="space-y-6 focus-visible:outline-none">
-                <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 space-y-6 shadow-xs">
-                  <div className="border-b border-border/60 pb-4">
-                    <h3 className="text-base font-bold text-foreground">Basic Information</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Personalize your identity and contact information for clients.
-                    </p>
+                <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fullname" className="text-[13px] font-semibold">Full name</Label>
+                    <Input id="fullname" name="fullname" autoComplete="name" value={profile.fullname || ""} onChange={handleChange} className="h-11 rounded-none border-input bg-white text-sm focus-visible:ring-forest/20" />
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    {/* Full Name */}
-                    <div className="space-y-2">
-                      <Label htmlFor="fullname" className="text-xs font-semibold text-foreground">
-                        Full Name <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="fullname"
-                        name="fullname"
-                        value={profile.fullname || ""}
-                        onChange={handleChange}
-                        placeholder="e.g. Maya Chen"
-                        className="rounded-xl bg-background border-border/80 text-sm h-11 focus-visible:ring-primary/20"
-                      />
-                    </div>
-
-                    {/* Email (Read Only) */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="email" className="text-xs font-semibold text-foreground">
-                          Email Address
-                        </Label>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Verified
-                        </span>
-                      </div>
-                      <Input
-                        id="email"
-                        name="email"
-                        disabled
-                        value={profile.email || ""}
-                        className="rounded-xl bg-muted/60 border-border/60 text-sm h-11 text-muted-foreground cursor-not-allowed"
-                      />
-                    </div>
-
-                    {/* Phone Number */}
-                    <div className="space-y-2">
-                      <Label htmlFor="phoneNumber" className="text-xs font-semibold text-foreground">
-                        Phone Number
-                      </Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                        <Input
-                          id="phoneNumber"
-                          name="phoneNumber"
-                          value={profile.phoneNumber || ""}
-                          onChange={handleChange}
-                          placeholder="+1 (555) 000-0000"
-                          className="rounded-xl bg-background border-border/80 pl-10 text-sm h-11 focus-visible:ring-primary/20"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Location */}
-                    <div className="space-y-2">
-                      <Label htmlFor="location" className="text-xs font-semibold text-foreground">
-                        Location / City
-                      </Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                        <Input
-                          id="location"
-                          name="location"
-                          value={profile.location || ""}
-                          onChange={handleChange}
-                          placeholder="e.g. San Francisco, CA"
-                          className="rounded-xl bg-background border-border/80 pl-10 text-sm h-11 focus-visible:ring-primary/20"
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-[13px] font-semibold">Email address <span className="ml-2 text-xs font-normal text-muted-foreground">From your account</span></Label>
+                    <Input id="email" type="email" autoComplete="email" readOnly value={profile.email || ""} className="h-11 rounded-none border-line bg-[#f7f6f2] text-sm text-muted-foreground" />
                   </div>
-
-                  {/* Bio */}
-                  <div className="space-y-2 pt-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="bio" className="text-xs font-semibold text-foreground">
-                        {isPhotographer ? "Artist Statement & Bio" : "About You / Company"}
-                      </Label>
-                      <span className="text-[11px] text-muted-foreground font-mono">
-                        {(profile.bio || "").length} / 400
-                      </span>
-                    </div>
-                    <Textarea
-                      id="bio"
-                      name="bio"
-                      maxLength={400}
-                      rows={4}
-                      value={profile.bio || ""}
-                      onChange={handleChange}
-                      placeholder={
-                        isPhotographer
-                          ? "Share your photography style, creative philosophy, gear, and what makes your work distinct..."
-                          : "Tell creators about your organization, project style, and collaboration goals..."
-                      }
-                      className="rounded-xl bg-background border-border/80 text-sm resize-none focus-visible:ring-primary/20 leading-relaxed"
-                    />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phoneNumber" className="text-[13px] font-semibold">Phone number</Label>
+                    <Input id="phoneNumber" name="phoneNumber" type="tel" autoComplete="tel" value={profile.phoneNumber || ""} onChange={handleChange} placeholder="Add a phone number" className="h-11 rounded-none border-input bg-white text-sm focus-visible:ring-forest/20" />
                   </div>
-
-                  {/* Website / External Link */}
-                  <div className="space-y-2 pt-2">
-                    <Label htmlFor="website" className="text-xs font-semibold text-foreground">
-                      Website / Online Portfolio
-                    </Label>
-                    <div className="relative">
-                      <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                      <Input
-                        id="website"
-                        name={isPhotographer ? "portfolio_url" : "website"}
-                        value={
-                          isPhotographer
-                            ? profile.portfolio_url || ""
-                            : profile.website || ""
-                        }
-                        onChange={handleChange}
-                        placeholder="https://yourwebsite.com"
-                        className="rounded-xl bg-background border-border/80 pl-10 text-sm h-11 focus-visible:ring-primary/20"
-                      />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="location" className="text-[13px] font-semibold">Location / city</Label>
+                    <Input id="location" name="location" autoComplete="address-level2" value={profile.location || ""} onChange={handleChange} placeholder="City or region" className="h-11 rounded-none border-input bg-white text-sm focus-visible:ring-forest/20" />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label htmlFor="bio" className="text-[13px] font-semibold">{isPhotographer ? "Biography" : "About you"}</Label>
+                      <span className="text-xs text-muted-foreground">{(profile.bio || "").length} / 400</span>
                     </div>
+                    <Textarea id="bio" name="bio" maxLength={400} rows={3} value={profile.bio || ""} onChange={handleChange} placeholder={isPhotographer ? "Describe your photography style and the work you take on." : "Tell photographers about your projects and collaboration goals."} className="min-h-24 resize-y rounded-none border-input bg-white text-sm leading-6 focus-visible:ring-forest/20" />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="website" className="text-[13px] font-semibold">Website / online portfolio</Label>
+                    <Input id="website" name="website" type="url" autoComplete="url" value={profile.website || ""} onChange={handleChange} placeholder="https://example.com" className="h-11 rounded-none border-input bg-white text-sm focus-visible:ring-forest/20" />
                   </div>
                 </div>
-              </TabsContent>
+              </section>
 
-              {/* ── TAB 2: Rates & Specialties (Photographers only) ── */}
-              {isPhotographer && (
-                <TabsContent value="professional" className="space-y-6 focus-visible:outline-none">
-                  <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 space-y-6 shadow-xs">
-                    <div className="border-b border-border/60 pb-4 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-base font-bold text-foreground">Pricing & Experience</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Set your baseline booking rate and key photography domains.
-                        </p>
+              {isPhotographer && <>
+                <section id="rates-specialties" aria-labelledby="rates-heading" className="scroll-mt-36 px-5 py-6 sm:px-7 sm:py-7">
+                  <div className="mb-5">
+                    <h2 id="rates-heading" className="text-[17px] font-semibold tracking-tight">Rates &amp; Specialties</h2>
+                    <p className="mt-1 text-[13px] leading-5 text-muted-foreground">Help clients understand your experience and the photography you offer.</p>
+                  </div>
+                  <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="hourlyRate" className="text-[13px] font-semibold">Hourly rate (NGN)</Label>
+                      <div className="flex h-11 items-center border border-input bg-white px-3.5 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-forest">
+                        <span className="mr-2 text-sm text-muted-foreground">₦</span>
+                        <Input id="hourlyRate" name="hourlyRate" type="number" min="0" step="1" value={profile.hourlyRate ?? ""} onChange={handleChange} placeholder="Set your hourly rate" className="h-full min-w-0 rounded-none border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0" />
                       </div>
+                      <p className="text-xs leading-5 text-muted-foreground">This is your listed hourly rate, not a project total.</p>
                     </div>
-
-                    {/* Rates & Experience Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="hourlyRate" className="text-xs font-semibold text-foreground">
-                          Hourly Rate (₦ NGN)
-                        </Label>
-                        <div className="relative">
-                          <NairaSign className="-mt-1.5 absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                          <Input
-                            id="hourlyRate"
-                            name="hourlyRate"
-                            type="number"
-                            min="0"
-                            step="5"
-                            value={profile.hourlyRate ?? ""}
-                            onChange={handleChange}
-                            placeholder="150"
-                            className="rounded-xl bg-background border-border/80 pl-10 text-sm h-11 focus-visible:ring-primary/20 font-mono"
-                          />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Base rate displayed on discovery search and job proposals.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="experience" className="text-xs font-semibold text-foreground">
-                          Years of Experience
-                        </Label>
-                        <div className="relative">
-                          <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                          <Input
-                            id="experience"
-                            name="experience"
-                            type="number"
-                            min="0"
-                            max="50"
-                            value={profile.experience ?? ""}
-                            onChange={handleChange}
-                            placeholder="5"
-                            className="rounded-xl bg-background border-border/80 pl-10 text-sm h-11 focus-visible:ring-primary/20 font-mono"
-                          />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Professional shooting experience in the industry.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Availability Switch */}
-                    <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 flex items-center justify-between gap-4">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">Available for New Bookings</span>
-                          {profile.availability && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-                              Live
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          When turned off, clients will see that you are currently booked out.
-                        </p>
-                      </div>
-                      <Switch
-                        id="availability"
-                        checked={profile.availability ?? true}
-                        onCheckedChange={handleToggleAvailability}
-                      />
-                    </div>
-
-                    {/* Specialties Picker */}
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold text-foreground">
-                          Creative Specialties
-                        </Label>
-                        <span className="text-xs text-muted-foreground font-medium">
-                          {(profile.specialties || []).length} selected
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Select all styles you specialize in. These help clients find you through search filters.
-                      </p>
-
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {AVAILABLE_SPECIALTIES.map((specialty) => {
-                          const isSelected = profile.specialties?.includes(specialty);
-                          return (
-                            <button
-                              key={specialty}
-                              type="button"
-                              onClick={() => toggleSpecialty(specialty)}
-                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 border cursor-pointer select-none ${
-                                isSelected
-                                  ? "bg-primary text-primary-foreground border-primary shadow-xs scale-[1.02]"
-                                  : "bg-background text-muted-foreground border-border/80 hover:border-primary/40 hover:text-foreground"
-                              }`}
-                            >
-                              {isSelected ? (
-                                <Check className="h-3 w-3 stroke-[2.5]" />
-                              ) : (
-                                <Plus className="h-3 w-3 opacity-60" />
-                              )}
-                              <span>{specialty}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="experience" className="text-[13px] font-semibold">Years of experience</Label>
+                      <Input id="experience" name="experience" type="number" min="0" max="80" value={profile.experience ?? ""} onChange={handleChange} placeholder="Years in photography" className="h-11 rounded-none border-input bg-white text-sm focus-visible:ring-forest/20" />
                     </div>
                   </div>
-                </TabsContent>
-              )}
-
-              {/* ── TAB 3: Portfolio & Works (Photographers only) ── */}
-              {isPhotographer && (
-                <TabsContent value="portfolio" className="space-y-6 focus-visible:outline-none">
-                  <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 space-y-6 shadow-xs">
-                    <div className="border-b border-border/60 pb-4 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-base font-bold text-foreground">Portfolio Showcase</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Visual proof of your best shoots and client projects.
-                        </p>
-                      </div>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        asChild
-                        className="rounded-xl text-xs font-semibold h-8 gap-1 border-border/80"
-                      >
-                        <Link href="/dashboard/portfolio">
-                          <span>Manage Works</span>
-                          <ChevronRight className="h-3 w-3" />
-                        </Link>
-                      </Button>
+                  <div className="mt-5 flex flex-col gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[13px] font-semibold">Available for new bookings</p>
+                      <p className="mt-1 max-w-[430px] text-[13px] leading-5 text-muted-foreground">Let clients know if you’re currently accepting booking requests.</p>
                     </div>
+                    <div className="inline-flex min-h-11 items-center gap-3 self-start sm:self-auto">
+                      <Switch id="availability" checked={profile.availability ?? true} onCheckedChange={(checked) => updateField("availability", checked)} aria-label="Available for new bookings" />
+                      <Label htmlFor="availability" className="text-[13px] font-medium">{profile.availability ? "Available" : "Unavailable"}</Label>
+                    </div>
+                  </div>
+                  <fieldset className="mt-5 border-t border-line pt-5">
+                    <legend className="mb-2 text-[13px] font-semibold">Creative specialties</legend>
+                    <p className="mb-3 text-[13px] text-muted-foreground">Choose the types of photography clients can find you for.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {specialties.map((specialty) => {
+                        const selected = profile.specialties?.includes(specialty) ?? false;
+                        return (
+                          <button key={specialty} type="button" aria-pressed={selected} onClick={() => toggleSpecialty(specialty)} className={`inline-flex min-h-10 items-center border px-3.5 text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest ${selected ? "border-forest bg-forest text-white" : "border-input bg-white text-ink hover:border-forest hover:text-forest"}`}>
+                            {specialty}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">{profile.specialties?.length ? `${profile.specialties.length} specialties selected` : "No specialties selected."}</p>
+                  </fieldset>
+                </section>
 
-                    {portfolioItems.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {portfolioItems.map((item) => {
-                          const previewImage =
-                            Array.isArray(item.image_url) && item.image_url.length > 0
-                              ? item.image_url[0]
-                              : typeof item.image_url === "string"
-                              ? item.image_url
-                              : null;
-
-                          return (
-                            <div
-                              key={item.id}
-                              className="group relative aspect-[4/3] rounded-2xl overflow-hidden border border-border/60 bg-muted shadow-xs hover:border-primary/40 transition-all"
-                            >
-                              {previewImage ? (
-                                <img
-                                  src={previewImage}
-                                  alt={item.title}
-                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                  <ImageIcon className="h-8 w-8 opacity-40" />
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90 transition-opacity" />
-                              <div className="absolute bottom-0 left-0 right-0 p-3.5 text-white">
-                                <p className="text-sm font-bold truncate">{item.title}</p>
-                                {item.location && (
-                                  <p className="text-[11px] text-white/75 flex items-center gap-1 mt-0.5">
-                                    <MapPin className="h-3 w-3" />
-                                    {item.location}
-                                  </p>
-                                )}
-                              </div>
+                <section id="works-portfolio" aria-labelledby="works-heading" className="scroll-mt-36 px-5 py-6 sm:px-7 sm:py-7">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 id="works-heading" className="text-[17px] font-semibold tracking-tight">Works &amp; Portfolio</h2>
+                      <p className="mt-1 text-[13px] leading-5 text-muted-foreground">Your collections give clients a closer look at your photography.</p>
+                    </div>
+                    <Button variant="outline" asChild className="min-h-11 w-fit rounded-none border-input px-4 text-[13px] font-semibold text-forest">
+                      <Link href="/dashboard/portfolio"><ImageIcon className="size-4" aria-hidden="true" />Manage portfolio<ArrowUpRight className="size-4" aria-hidden="true" /></Link>
+                    </Button>
+                  </div>
+                  {portfolios.length > 0 ? (
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      {portfolios.map((item) => {
+                        const image = Array.isArray(item.image_url) ? item.image_url[0] : item.image_url;
+                        return (
+                          <article key={item.id} className="flex min-w-0 gap-4 border-t border-line py-4">
+                            <div className="relative size-20 shrink-0 overflow-hidden bg-wash sm:size-24">
+                              {image ? <img src={image} alt={item.title} loading="lazy" className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-muted-foreground"><ImageIcon className="size-5" aria-hidden="true" /></div>}
                             </div>
-                          );
-                        })}
-
-                        {/* Add Work Card */}
-                        <Link
-                          href="/dashboard/portfolio"
-                          className="aspect-[4/3] rounded-2xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary group p-4 text-center"
-                        >
-                          <div className="h-10 w-10 rounded-full bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-                            <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
-                          </div>
-                          <span className="text-xs font-semibold">Add New Work</span>
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="py-12 px-6 rounded-2xl border-2 border-dashed border-border/80 text-center flex flex-col items-center justify-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                          <ImageIcon className="h-6 w-6" />
-                        </div>
-                        <div className="max-w-sm space-y-1">
-                          <h4 className="text-sm font-bold text-foreground">No Works Uploaded Yet</h4>
-                          <p className="text-xs text-muted-foreground">
-                            Upload your client shoots or creative series to showcase your work directly to potential clients.
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          asChild
-                          className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 mt-2 gap-1.5"
-                        >
-                          <Link href="/dashboard/portfolio">
-                            <Plus className="h-3.5 w-3.5" />
-                            <span>Upload Portfolio</span>
-                          </Link>
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              )}
-
-              {/* ── TAB 4: Account & Security ── */}
-              <TabsContent value="account" className="space-y-6 focus-visible:outline-none">
-                <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 space-y-6 shadow-xs">
-                  <div className="border-b border-border/60 pb-4">
-                    <h3 className="text-base font-bold text-foreground">Account & Credentials</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      System identification and account membership configuration.
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
-                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          Account Role
-                        </span>
-                        <p className="text-sm font-bold text-foreground capitalize flex items-center gap-1.5">
-                          <Badge variant="outline" className="text-xs capitalize font-semibold">
-                            {profile.role}
-                          </Badge>
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-1">
-                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          User ID Reference
-                        </span>
-                        <p className="text-sm font-mono font-medium text-foreground">
-                          #{profile.id}
-                        </p>
-                      </div>
+                            <div className="min-w-0 py-1">
+                              <h3 className="truncate text-sm font-semibold">{item.title}</h3>
+                              {item.location && <p className="mt-1 truncate text-[13px] text-muted-foreground">{item.location}</p>}
+                              {item.category?.length ? <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{item.category.join(" · ")}</p> : null}
+                            </div>
+                          </article>
+                        );
+                      })}
                     </div>
-
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/60 flex items-center justify-between gap-4">
-                      <div className="space-y-0.5">
-                        <h4 className="text-xs font-bold text-foreground">Public Creator Profile</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {isPhotographer
-                            ? "Your profile is indexable in LensConnect talent search."
-                            : "Your profile is visible to photographers when posting jobs."}
-                        </p>
+                  ) : (
+                    <div className="mt-5 flex min-h-[94px] flex-col items-start justify-center gap-1 border border-dashed border-line-strong bg-[#fbfaf7] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-medium">No portfolio collections added yet.</p>
+                        <p className="mt-1 text-[13px] text-muted-foreground">Add a collection from Portfolio to show your work here.</p>
                       </div>
-                      {isPhotographer && (
-                        <Button variant="outline" size="sm" asChild className="rounded-xl text-xs font-semibold">
-                          <Link
-                            href={`/photographer/${encodeURIComponent(profile.fullname || "creator")}/${profile.id}`}
-                            target="_blank"
-                          >
-                            View
-                          </Link>
-                        </Button>
-                      )}
+                      <Link href="/dashboard/portfolio" className="mt-2 min-h-11 inline-flex items-center font-semibold text-[13px] text-forest underline underline-offset-4 hover:text-forest-dark sm:mt-0">Add portfolio work</Link>
                     </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Sticky Sidebar: Live Public Card Preview */}
-          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
-            <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-border/60">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-bold text-foreground tracking-wide uppercase">
-                    Live Preview
-                  </span>
-                </div>
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  Client Perspective
-                </span>
-              </div>
-
-              {/* Mini Profile Card */}
-              <div className="rounded-2xl border border-border/60 bg-background p-5 space-y-4 shadow-2xs">
-                <div className="flex items-center gap-3.5">
-                  <div className="h-14 w-14 rounded-2xl overflow-hidden bg-muted shrink-0 border border-border/60">
-                    {profile.profile_image_url ? (
-                      <img
-                        src={profile.profile_image_url}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                        <UserIcon className="h-6 w-6" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="text-sm font-bold text-foreground truncate">
-                        {profile.fullname || "Your Name"}
-                      </h4>
-                      {isPhotographer && (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {isPhotographer ? "Professional Photographer" : "Client Member"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Location & Rate pills */}
-                <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1">
-                  {profile.location && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-[11px] font-medium">
-                      <MapPin className="h-3 w-3" />
-                      {profile.location}
-                    </span>
                   )}
-                  {isPhotographer && Number(profile.hourlyRate) > 0 && (
-                    <span className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[11px] font-bold">
-                      ${profile.hourlyRate}/hr
-                    </span>
-                  )}
-                  {isPhotographer && Number(profile.experience) > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-[11px] font-medium">
-                      <Clock className="h-3 w-3" />
-                      {profile.experience} yrs exp
-                    </span>
-                  )}
+                </section>
+              </>}
+
+              <section id="account" aria-labelledby="account-heading" className="scroll-mt-36 px-5 py-6 sm:px-7 sm:py-7">
+                <div>
+                  <h2 id="account-heading" className="text-[17px] font-semibold tracking-tight">Account</h2>
+                  <p className="mt-1 text-[13px] leading-5 text-muted-foreground">Account details are managed separately from your profile.</p>
                 </div>
-
-                {/* Bio Snippet */}
-                {profile.bio && (
-                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed border-t border-border/40 pt-3">
-                    {profile.bio}
-                  </p>
-                )}
-
-                {/* Specialties tags preview */}
-                {isPhotographer && (profile.specialties || []).length > 0 && (
-                  <div className="space-y-1.5 border-t border-border/40 pt-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Specialties
-                    </span>
-                    <div className="flex flex-wrap gap-1">
-                      {profile.specialties?.slice(0, 4).map((spec) => (
-                        <span
-                          key={spec}
-                          className="px-2 py-0.5 rounded-md bg-muted text-[10px] font-semibold text-foreground/80"
-                        >
-                          {spec}
-                        </span>
-                      ))}
-                      {(profile.specialties?.length || 0) > 4 && (
-                        <span className="px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-semibold text-muted-foreground">
-                          +{(profile.specialties?.length || 0) - 4}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Save Quick Action in sidebar */}
-              <Button
-                onClick={handleSave}
-                disabled={saving || !isDirty}
-                className="w-full rounded-xl text-xs font-bold h-11 bg-primary text-primary-foreground hover:bg-primary/90 gap-2 shadow-xs transition-all"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Saving Changes...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    <span>{isDirty ? "Save Changes" : "All Changes Saved"}</span>
-                  </>
-                )}
-              </Button>
+                <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="border-t border-line pt-3"><dt className="text-xs font-medium text-muted-foreground">Account role</dt><dd className="mt-1.5 text-sm font-semibold capitalize">{profile.role}</dd></div>
+                  <div className="border-t border-line pt-3"><dt className="text-xs font-medium text-muted-foreground">Account ID</dt><dd className="mt-1.5 text-sm text-muted-foreground">{profile.id}</dd></div>
+                </dl>
+              </section>
             </div>
           </div>
+
+          <aside className="min-w-0 lg:sticky lg:top-[154px]">
+            {isPhotographer ? (
+              <section aria-labelledby="preview-heading" className="border border-line bg-white p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4 border-b border-line pb-4">
+                  <div>
+                    <h2 id="preview-heading" className="text-[15px] font-semibold">Public profile preview</h2>
+                    <p className="mt-1 text-[13px] text-muted-foreground">Only saved profile details appear here.</p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"><Eye className="size-4" aria-hidden="true" />Preview</span>
+                </div>
+                <div className="mt-5 flex items-center gap-3.5">
+                  <div className="flex size-[62px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-dashed border-line-strong bg-paper text-muted-foreground">
+                    {previewImage ? <img src={previewImage} alt="Saved profile portrait" className="size-full object-cover" /> : <UserRound className="size-5" aria-hidden="true" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-semibold">{preview.fullname || "Add your name"}</p>
+                    <p className="mt-1 truncate text-[13px] text-muted-foreground">{preview.location || "Add your location"}</p>
+                  </div>
+                </div>
+                <div className="mt-5 border-t border-line pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground">Photography specialties</p>
+                  <p className="mt-2 text-[13px] text-muted-foreground">{preview.specialties?.length ? preview.specialties.join(" · ") : "No specialties selected"}</p>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3 border-y border-line py-3 text-[13px]">
+                  <span className="text-muted-foreground">Hourly rate</span>
+                  <span className={previewRate ? "font-medium" : "text-muted-foreground"}>{previewRate ? `${formatNaira(previewRate)} / hour` : "Add a rate"}</span>
+                </div>
+                <div className="mt-4 flex min-h-[115px] flex-col items-center justify-center border border-dashed border-line-strong bg-[#fbfaf7] px-4 py-5 text-center">
+                  <ImageIcon className="size-5 text-muted-foreground" aria-hidden="true" />
+                  <p className="mt-2 text-[13px] font-medium">{portfolios.length ? `${portfolios.length} portfolio ${portfolios.length === 1 ? "collection" : "collections"}` : "No portfolio images yet"}</p>
+                  <p className="mt-1 max-w-[220px] text-xs leading-5 text-muted-foreground">{portfolios.length ? "Your portfolio collections appear on your public profile." : "Add a collection to show your work on your profile."}</p>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" disabled={!publicProfileHref} asChild={Boolean(publicProfileHref)} className="min-h-10 rounded-none border-line text-xs font-semibold">
+                    {publicProfileHref ? <Link href={publicProfileHref} target="_blank" rel="noreferrer">View profile</Link> : <span>View profile</span>}
+                  </Button>
+                  <Button type="button" disabled={!preview.availability || !previewRate} className="min-h-10 rounded-none text-xs font-semibold">Request booking</Button>
+                </div>
+                <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">This preview reflects saved details. Save your edits to update it.</p>
+              </section>
+            ) : (
+              <section className="border border-line bg-white p-5 sm:p-6">
+                <h2 className="text-[15px] font-semibold">Account profile</h2>
+                <p className="mt-2 text-[13px] leading-6 text-muted-foreground">Your contact details help photographers respond to your booking requests.</p>
+              </section>
+            )}
+            <div className="mt-4 flex gap-3 border-l-2 border-forest py-1 pl-4 text-[13px] leading-5 text-muted-foreground">
+              <Info className="mt-0.5 size-4 shrink-0 text-forest" aria-hidden="true" />
+              <p>Your profile photo saves immediately after upload. Other edits remain unsaved until you choose <strong className="font-semibold text-ink">Save changes</strong>.</p>
+            </div>
+          </aside>
         </div>
       </main>
     </div>
