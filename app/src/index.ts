@@ -1,21 +1,33 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { relations } from "./db/schema";
+import dotenv from "dotenv";
+
+const isDevelopment = process.env.NODE_ENV === "development";
+dotenv.config({
+  path: isDevelopment ? [".env.local", ".env"] : ".env",
+  override: !isDevelopment,
+});
 
 const configuredDatabaseUrl = process.env.DATABASE_URL?.trim();
 
 if (!configuredDatabaseUrl) {
-  throw new Error("DATABASE_URL environment variable is not configured.");
+  throw new Error(
+    isDevelopment
+      ? "DATABASE_URL is not configured. Set it in .env.local for local development."
+      : "DATABASE_URL is not configured. Set it in the production .env file or hosting environment.",
+  );
 }
 
 let databaseUrl: URL;
 
 try {
   databaseUrl = new URL(configuredDatabaseUrl);
-} catch (error) {
+} catch {
   throw new Error(
-    "DATABASE_URL must be a valid MySQL connection URL (mysql://user:password@host:port/database). Encode special characters in the username or password.",
-    { cause: error },
+    `DATABASE_URL from ${
+      isDevelopment ? ".env.local" : "the production environment"
+    } must be a valid MySQL connection URL. Encode special characters in the username or password.`,
   );
 }
 
