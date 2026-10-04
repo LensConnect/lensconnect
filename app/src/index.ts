@@ -1,53 +1,25 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { relations } from "./db/schema";
+import path from "path";
 import dotenv from "dotenv";
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
-const isDevelopment = process.env.NODE_ENV === "development";
-dotenv.config({
-  path: isDevelopment ? [".env.local", ".env"] : ".env",
-  override: !isDevelopment,
-});
+// 2. Then load standard .env (fills in anything missing, won't overwrite .env.local variables)
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
-const configuredDatabaseUrl = process.env.DATABASE_URL?.trim();
-
-if (!configuredDatabaseUrl) {
-  throw new Error(
-    isDevelopment
-      ? "DATABASE_URL is not configured. Set it in .env.local for local development."
-      : "DATABASE_URL is not configured. Set it in the production .env file or hosting environment.",
-  );
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set. Define it in .env.local");
 }
 
-let databaseUrl: URL;
-
-try {
-  databaseUrl = new URL(configuredDatabaseUrl);
-} catch {
-  throw new Error(
-    `DATABASE_URL from ${
-      isDevelopment ? ".env.local" : "the production environment"
-    } must be a valid MySQL connection URL. Encode special characters in the username or password.`,
-  );
-}
-
-if (databaseUrl.protocol !== "mysql:") {
-  throw new Error("DATABASE_URL must use the mysql:// protocol.");
-}
-
+const databaseUrl = new URL(process.env.DATABASE_URL);
 const sslMode = databaseUrl.searchParams.get("ssl-mode")?.toUpperCase();
-
 databaseUrl.searchParams.delete("ssl-mode");
 
 const connection = mysql.createPool({
   uri: databaseUrl.toString(),
-  ...(sslMode === "REQUIRED"
-    ? {
-        ssl: {
-          rejectUnauthorized: true,
-        },
-      }
-    : {}),
+  ...(sslMode === "REQUIRED" ? { ssl: { rejectUnauthorized: true } } : {}),
 });
 
 export const db = drizzle({
