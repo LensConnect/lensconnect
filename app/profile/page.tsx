@@ -100,26 +100,30 @@ export default function ProfilePage() {
 
   const { startUpload } = useUploadThing("profileImage", {
     onClientUploadComplete: async (result) => {
-      const uploadedUrl = result?.[0]?.url;
+      const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
       if (!uploadedUrl || !user?.id) {
+        toast.error("Upload completed without a usable profile photo URL.");
         setUploading(false);
         return;
       }
 
-      const saved = await saveProfileImage(Number(user.id), uploadedUrl);
-      if (!saved.success) {
-        toast.error(saved.error || "Could not save the profile photo.");
+      try {
+        const saved = await saveProfileImage(Number(user.id), uploadedUrl);
+        if (!saved.success) {
+          throw new Error(saved.error || "Could not save the profile photo.");
+        }
+
+        setProfile((current) => current ? { ...current, profile_image_url: uploadedUrl } : current);
+        setSavedProfile((current) => current ? { ...current, profile_image_url: uploadedUrl } : current);
+        await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+        await queryClient.invalidateQueries({ queryKey: ["profile-image", user.id] });
+        toast.success("Profile photo saved.");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not save the profile photo.");
+      } finally {
         setUploading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
-        return;
       }
-
-      setProfile((current) => current ? { ...current, profile_image_url: uploadedUrl } : current);
-      setSavedProfile((current) => current ? { ...current, profile_image_url: uploadedUrl } : current);
-      await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
-      toast.success("Profile photo saved.");
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     },
     onUploadError: (error) => {
       toast.error(error.message || "Could not upload the profile photo.");

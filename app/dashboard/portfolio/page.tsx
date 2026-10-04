@@ -229,7 +229,7 @@ export default function PortfolioPage() {
   }, [user]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50/50 dark:bg-zinc-950/50 text-foreground">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Header />
 
       {/* Header Banner */}

@@ -73,7 +73,7 @@ const JobManagementPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const isLoading = isLoadingJob || isLoadingApps
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-paper text-ink">
       <Header />
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">

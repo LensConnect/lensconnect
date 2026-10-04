@@ -12,12 +12,12 @@
   --lc-sand: #f2f0ea;
   color: var(--lc-ink);
   background: var(--lc-paper);
-  font-family: var(--lc-font-sans), sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
 }
 
 .landing h1,
 .landing h2,
 .landing h3,
 .landing .displayHeading {
-  font-family: var(--lc-font-display), sans-serif;
+  font-family: var(--font-newsreader), serif;
 }

@@ -29,7 +29,7 @@ function MessagesContent() {
 
 export default function MessagesPage() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Header />
       <Suspense fallback={<div>Loading...</div>}>
         <MessagesContent />

@@ -49,7 +49,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Header />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

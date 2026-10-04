@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { DM_Sans, Manrope } from "next/font/google";
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, MapPin, Menu } from "lucide-react";
+import { ArrowRight, ArrowUpRight, MapPin } from "lucide-react";
 
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
@@ -60,23 +60,18 @@ const processSteps = [
   },
 ];
 
-const dmSans = DM_Sans({ subsets: ["latin"], variable: "--lc-font-sans", weight: ["400", "500", "600", "700"] });
-const manrope = Manrope({ subsets: ["latin"], variable: "--lc-font-display", weight: ["400", "500", "600", "700", "800"] });
-
 const categoryMotion = {
   hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" as const } },
 };
 
 export default function HomePage() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const dashboardHref = user?.role === "photographer"
     ? "/dashboard"
     : user?.role === "client"
       ? "/dashboard/client"
       : "/admin";
-  const accountHref = user ? dashboardHref : "/signup?role=photographer";
-  const accountLabel = user ? "Dashboard" : "Create a photographer profile";
   const joinHref = user ? dashboardHref : "/signup?role=photographer";
   const joinLabel = user?.role === "photographer"
     ? "Open photographer dashboard"
@@ -85,51 +80,8 @@ export default function HomePage() {
       : "Create a photographer profile";
 
   return (
-    <div className={`${styles.landing} ${dmSans.variable} ${manrope.variable} min-h-screen`}>
-      <header className="border-b border-(--lc-line) bg-(--lc-paper)">
-        <div className="mx-auto flex h-[76px] max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-8">
-          <Link href="/" aria-label="LensConnect home" className="shrink-0 text-(--lc-ink) no-underline">
-            <span className="font-sans text-[19px] font-extrabold tracking-[-0.06em]">lensconnect<span className="text-(--lc-forest)">.</span></span>
-          </Link>
-
-          <nav aria-label="Main navigation" className="hidden items-center gap-8 md:flex">
-            <Link href="/photographers" className="inline-flex min-h-11 items-center text-sm font-medium text-(--lc-ink-soft) transition-colors hover:text-(--lc-forest) focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--lc-forest)">
-              Discover Photographers
-            </Link>
-            <Link href="#categories" className="inline-flex min-h-11 items-center text-sm font-medium text-(--lc-ink-soft) transition-colors hover:text-(--lc-forest) focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--lc-forest)">
-              Explore Categories
-            </Link>
-          </nav>
-
-          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-            {!user && !isLoading && (
-              <Link href="/login" className="hidden min-h-11 items-center px-2 text-sm font-medium text-(--lc-ink-soft) hover:text-(--lc-forest) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lc-forest) sm:inline-flex">
-                Sign in
-              </Link>
-            )}
-            {user && !isLoading && (
-              <Link href={dashboardHref} className="hidden min-h-11 items-center px-2 text-sm font-medium text-(--lc-ink-soft) hover:text-(--lc-forest) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lc-forest) sm:inline-flex">
-                Dashboard
-              </Link>
-            )}
-            <Button asChild className="min-h-11 rounded-[7px] bg-(--lc-forest) px-5 text-[13px] font-semibold text-white hover:bg-(--lc-forest-dark) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-(--lc-forest)">
-              <Link href={accountHref}>{accountLabel}</Link>
-            </Button>
-            <details className="relative md:hidden">
-              <summary aria-label="Open navigation menu" className="flex size-11 cursor-pointer list-none items-center justify-center border border-(--lc-line) text-(--lc-ink) marker:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lc-forest)">
-                <Menu aria-hidden="true" className="size-5" />
-              </summary>
-              <nav aria-label="Mobile navigation" className="absolute right-0 top-12 z-20 flex min-w-56 flex-col border border-(--lc-line) bg-(--lc-paper) p-2 shadow-[0_12px_32px_rgba(23,23,23,0.12)]">
-                <Link href="/photographers" className="flex min-h-11 items-center px-3 text-sm hover:bg-(--lc-sand)">Discover photographers</Link>
-                <Link href="#categories" className="flex min-h-11 items-center px-3 text-sm hover:bg-(--lc-sand)">Explore categories</Link>
-                {!user && !isLoading && <Link href="/login" className="flex min-h-11 items-center px-3 text-sm hover:bg-(--lc-sand)">Sign in</Link>}
-                {user && !isLoading && <Link href={dashboardHref} className="flex min-h-11 items-center px-3 text-sm hover:bg-(--lc-sand)">Dashboard</Link>}
-              </nav>
-            </details>
-          </div>
-        </div>
-      </header>
-
+    <div className={`${styles.landing} min-h-screen`}>
+      <Header />
       <main>
         <section className="mx-auto max-w-[1320px] px-5 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-14 lg:pb-20 lg:pt-[72px]" aria-labelledby="home-heading">
           <div className="grid items-center gap-9 lg:grid-cols-[0.82fr_1.18fr] lg:gap-14">

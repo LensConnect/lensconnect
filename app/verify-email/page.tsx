@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Loader2 } from "lucide-react";
@@ -59,44 +60,47 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
-      <Card className="max-w-md w-full text-center">
-        <CardHeader>
-          <CardTitle className="text-2xl font-semibold flex justify-center items-center gap-2">
-            <Mail className="w-6 h-6 text-primary" /> Verify your email
-          </CardTitle>
-        </CardHeader>
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
+      <Header />
+      <main className="flex flex-1 items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-center gap-2 text-2xl font-semibold">
+              <Mail className="size-6 text-primary" /> Verify your email
+            </CardTitle>
+          </CardHeader>
 
-        <CardContent className="space-y-6">
-          <p className="text-muted-foreground">
-            We’ve sent a verification link to{" "}
-            <strong>{pendingEmail || "your email"}</strong>. <br />
-            Please check your inbox and click the link to activate your account.
-          </p>
+          <CardContent className="space-y-6">
+            <p className="text-muted-foreground">
+              We’ve sent a verification link to{" "}
+              <strong>{pendingEmail || "your email"}</strong>. <br />
+              Please check your inbox and click the link to activate your account.
+            </p>
 
-          <div className="flex justify-center">
-            {isChecking ? (
-              <div className="flex items-center gap-2 text-primary">
-                <Loader2 className="animate-spin w-5 h-5" />
-                <span>Checking verification status...</span>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                Once verified, you’ll be redirected automatically.
-              </p>
-            )}
-          </div>
+            <div className="flex justify-center">
+              {isChecking ? (
+                <div className="flex items-center gap-2 text-primary">
+                  <Loader2 className="size-5 animate-spin" />
+                  <span>Checking verification status...</span>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Once verified, you’ll be redirected automatically.
+                </p>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Button onClick={handleResend} className="w-full">
-              Resend verification email
-            </Button>
-            {resendMessage && (
-              <p className="text-sm text-green-600">{resendMessage}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            <div className="space-y-2">
+              <Button onClick={handleResend} className="w-full">
+                Resend verification email
+              </Button>
+              {resendMessage && (
+                <p className="text-sm text-forest">{resendMessage}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }

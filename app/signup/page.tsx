@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, Camera, LoaderCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,17 +65,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-line">
-        <div className="mx-auto flex min-h-[72px] max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-8">
-          <Link href="/" aria-label="LensConnect home" className="inline-flex min-h-11 items-center text-[19px] font-semibold tracking-[-0.06em] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest">
-            lensconnect<span className="text-forest">.</span>
-          </Link>
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="hidden sm:inline">Already have an account?</span>
-            <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-forest underline underline-offset-4 hover:text-forest-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">Log in</Link>
-          </p>
-        </div>
-      </header>
+      <Header />
 
       <main className="mx-auto grid max-w-[1320px] items-center gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[calc(100dvh-145px)] lg:grid-cols-[minmax(0,0.92fr)_minmax(520px,1.08fr)] lg:gap-16 lg:py-12">
         <figure className="order-2 relative m-0 hidden min-w-0 lg:block">

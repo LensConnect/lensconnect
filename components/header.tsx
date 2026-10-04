@@ -1,11 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useRouter, usePathname } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { usePathname, useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  BriefcaseBusiness,
+  Camera,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageSquare,
+  PlusSquare,
+  Search,
+  Shield,
+  UserRound,
+} from "lucide-react";
+
 import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,43 +27,72 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Camera,
-  Menu,
-  User,
-  LogOut,
-  LayoutDashboard,
-  Shield,
-  Search,
-  PlusSquare,
-  MessageSquare,
-  Briefcase,
-  ArrowRight,
-} from "lucide-react";
-import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
 } from "@/components/ui/sheet";
 
-import { use, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-
-interface profileImg{
-  profile_image_url:string;
-}
 export function Header() {
-  const { user, logout } = useAuth();
-  const router = useRouter();
+  const { user, logout, isLoading } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [profile,setProfileImg ] = useState<profileImg | null>( null)
-  const [isLoading , setIsLoading] = useState(false)
-  const isActiveLink = (href: string) => {
-    return pathname === href || (href !== "/" && pathname.startsWith(href));
-  };
+  const displayName = user?.fullname?.trim() || "LensConnect user";
+  const { data: profileImageUrl } = useQuery({
+    queryKey: ["profile-image", user?.id],
+    enabled: Boolean(user?.id) && !isLoading,
+    staleTime: 1000 * 60,
+    queryFn: async () => {
+      const response = await fetch(`/api/profiles?userId=${user?.id}`);
+      if (!response.ok) {
+        throw new Error("Could not load the profile photo.");
+      }
+
+      const data: { result?: { profile_image_url?: string | null } } =
+        await response.json();
+      return data.result?.profile_image_url || null;
+    },
+  });
+
+  const dashboardHref = user?.role === "client"
+    ? "/dashboard/client"
+    : user?.role === "admin"
+      ? "/admin"
+      : "/dashboard";
+  const navLinks = !user
+    ? [
+        { href: "/photographers", label: "Find Photographers", icon: Search },
+        { href: "/#categories", label: "Explore Categories", icon: Camera },
+        { href: "/#process-heading", label: "How It Works", icon: BriefcaseBusiness },
+      ]
+    : user.role === "client"
+      ? [
+          { href: "/photographers", label: "Find Photographers", icon: Search },
+          { href: "/dashboard/client/post-job", label: "Post a Job", icon: PlusSquare },
+          { href: "/dashboard/client/jobs", label: "Jobs", icon: BriefcaseBusiness },
+          { href: "/messages", label: "Messages", icon: MessageSquare },
+          { href: "/profile", label: "Profile", icon: UserRound },
+        ]
+      : user.role === "photographer"
+        ? [
+            { href: "/photographers", label: "Find Photographers", icon: Search },
+            { href: "/photographer/find-jobs", label: "Find Jobs", icon: BriefcaseBusiness },
+            { href: "/applications", label: "Applications", icon: BriefcaseBusiness },
+            { href: "/messages", label: "Messages", icon: MessageSquare },
+            { href: "/profile", label: "Profile", icon: UserRound },
+          ]
+        : [
+            { href: "/admin", label: "Admin", icon: Shield },
+            { href: "/profile", label: "Profile", icon: UserRound },
+          ];
+
+  const isActiveLink = (href: string) =>
+    href.startsWith("/#")
+      ? pathname === "/"
+      : pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 
   const handleLogout = async () => {
     await logout();
@@ -58,232 +100,184 @@ export function Header() {
     router.push("/login");
   };
 
-  const currentRole = user?.role || "guest";
-  const displayName = user?.fullname || "User";
+  const renderNavLink = (link: (typeof navLinks)[number], mobile = false) => {
+    const Icon = link.icon;
+    const active = isActiveLink(link.href);
 
-  const navLinks = [
-    { href: "/photographers", label: "Find Photographers", roles: ["client", "photographer"], icon: Search },
-    { href: "/photographer/find-jobs", label: "Find Jobs", roles: ["photographer"], icon: Search },
-    { href: "/dashboard/client/post-job", label: "Post a Job", roles: ["client"], icon: PlusSquare },
-    { href: "/how-it-works", label: "How It Works", roles: ["client", "photographer"], icon: Camera },
-    { href: "/dashboard/client", label: "Dashboard", roles: ["client"], icon: LayoutDashboard },
-    { href: "/dashboard/client/jobs", label: "Jobs", roles: ["client"], icon: Briefcase },
-    { href: "/dashboard", label: "Dashboard", roles: ["photographer"], icon: LayoutDashboard },
-    { href: "/admin", label: "Admin", roles: ["admin"], icon: Shield },
-    { href: "/applications", label: "Applications", roles: ["photographer"], icon: Briefcase },
-    { href: "/messages", label: "Messages", roles: ["client", "photographer"], icon: MessageSquare },
-  ];
-
-  
-  const fetchProfileImage = async()=>{
-     if (!user?.id) return null;
-     const response = await fetch(`/api/profiles?userId=${user.id}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if(!response.ok){
-        throw new Error ('No profileImage found')
-      }
-
-
-
-      const data = await response.json();
-      setProfileImg({
-        profile_image_url: data.result?.profile_image_url
-      })
-      }
-
-      useEffect(()=>{
-        fetchProfileImage()
-      },[user?.id])
- 
+    return (
+      <Link
+        key={link.href}
+        href={link.href}
+        aria-current={active ? "page" : undefined}
+        className={
+          mobile
+            ? `flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors ${
+                active
+                  ? "bg-accent text-accent-foreground"
+                  : "text-foreground hover:bg-secondary"
+              }`
+            : `inline-flex min-h-11 shrink-0 items-center whitespace-nowrap px-2 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest ${
+                active
+                  ? "text-forest"
+                  : "text-muted-foreground hover:text-forest"
+              }`
+        }
+      >
+        {mobile && <Icon aria-hidden="true" className="size-4 shrink-0" />}
+        {link.label}
+      </Link>
+    );
+  };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-white py-2">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 gap-4">
-        <Link href="/" className="flex items-center gap-2 shrink-0 transition-transform hover:scale-105">
-          <Image
-            src="/logo.png"
-            alt="LensConnect Logo"
-            width={36}
-            height={36}
-            className="h-9 w-9 object-contain"
-          />
-          <span className="text-xl sm:text-2xl font-black tracking-tight uppercase">LensConnect</span>
+    <header className="sticky top-0 z-50 w-full border-b border-line bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85">
+      <div className="mx-auto flex h-[76px] max-w-[1320px] items-center justify-between gap-4 px-5 sm:px-8">
+        <Link
+          href="/"
+          aria-label="LensConnect home"
+          className="shrink-0 text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
+        >
+          <span className="font-sans text-[19px] font-extrabold tracking-[-0.06em]">
+            lensconnect<span className="text-forest">.</span>
+          </span>
         </Link>
 
-        <nav className=" md:hidden  lg:flex items-center gap-1 xl:gap-2 flex-1 justify-center max-w-2xl overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {navLinks.map((link) => {
-            if (!link.roles.includes(currentRole)) return null;
-            const active = isActiveLink(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`whitespace-nowrap shrink-0 text-sm font-bold tracking-tight transition-all px-3 xl:px-4 py-2 rounded-full ${
-                  active
-                    ? "text-primary bg-primary/5"
-                    : "text-foreground/60 hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
+        <nav
+          aria-label="Main navigation"
+          className="hidden min-w-0 flex-1 items-center justify-center gap-2 overflow-x-auto lg:flex"
+        >
+          {navLinks.map((link) => renderNavLink(link))}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <button className="hidden xl:flex p-2 hover:bg-muted rounded-full transition-colors">
-            <Search className="h-5 w-5 text-foreground/60" />
-          </button>
-
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-               {profile?.profile_image_url ? (
-                <div className="h-10 w-10 overflow-hidden rounded-full">
-                <Image 
-                src={profile?.profile_image_url}
-                alt={`${displayName}'s profile image`}
-                width={40}
-                height={40}
-                quality={100}
-                className="h-10 w-10 rounded-full object-cover"
-                />
-                
-                </div>
-               ) : (
-                 <Button
-                 
-                  className="relative h-10 w-10 rounded-full bg-gray-100"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full  text-sm font-semibold text-primary">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                </Button>
-               )}
-               
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 mt-2 rounded-2xl shadow-xl border-border/50">
-                <div className="flex items-center justify-start gap-2 p-3">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-bold">{displayName}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="rounded-lg m-1">
-                  <Link href="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                {user.role === "photographer" && (
-                  <DropdownMenuItem asChild className="rounded-lg m-1">
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {user.role === "client" && (
-                  <DropdownMenuItem asChild className="rounded-lg m-1">
-                    <Link href="/dashboard/client" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {user.role === "admin" && (
-                  <DropdownMenuItem asChild className="rounded-lg m-1">
-                    <Link href="/admin" className="cursor-pointer">
-                      <Shield className="mr-2 h-4 w-4" />
-                      Admin Panel
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer text-destructive rounded-lg m-1"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {user && !isLoading ? (
             <>
-              <Button variant="ghost" asChild className="hidden sm:inline-flex font-bold rounded-full">
-                <Link href="/login">Log in</Link>
-              </Button>
               <Button
                 asChild
-                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-4 sm:px-8 h-11 sm:h-12 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+                className="min-h-11 rounded-[7px] bg-forest px-5 text-[13px] font-semibold text-white hover:bg-forest-dark focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2"
               >
-                <Link href="/signup">
-                  Sign up <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                <Link href={dashboardHref}>Dashboard</Link>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    aria-label={`Open ${displayName}'s profile menu`}
+                    className="size-11 overflow-hidden rounded-full border-line-strong bg-white p-0 text-sm font-semibold text-forest hover:bg-accent"
+                  >
+                    <Avatar className="size-full">
+                      <AvatarImage
+                        src={profileImageUrl || undefined}
+                        alt={`${displayName} profile photo`}
+                      />
+                      <AvatarFallback className="bg-accent text-forest">
+                        {displayName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2">
+                    <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <UserRound aria-hidden="true" className="mr-2 size-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={dashboardHref}>
+                      {user.role === "admin" ? (
+                        <Shield aria-hidden="true" className="mr-2 size-4" />
+                      ) : (
+                        <LayoutDashboard aria-hidden="true" className="mr-2 size-4" />
+                      )}
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                    <LogOut aria-hidden="true" className="mr-2 size-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="hidden min-h-11 items-center px-2 text-sm font-medium text-ink-soft transition-colors hover:text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest sm:inline-flex"
+              >
+                Sign in
+              </Link>
+              <Button
+                asChild
+                className="min-h-11 rounded-[7px] bg-forest px-4 text-[13px] font-semibold text-white hover:bg-forest-dark focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 sm:px-5"
+              >
+                <Link href="/signup">Get started</Link>
               </Button>
             </>
           )}
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
-                <Menu className="h-5 w-5" />
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Open navigation menu"
+                className="size-11 border-line text-ink lg:hidden"
+              >
+                <Menu aria-hidden="true" className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left">
+            <SheetContent side="right" className="bg-paper">
               <SheetHeader>
-                <SheetTitle className="text-left flex items-center gap-2">
-                  <Image
-                    src="/logo.png"
-                    alt="LensConnect Logo"
-                    width={24}
-                    height={24}
-                    className="h-6 w-6 object-contain"
-                  />
-                  LensConnect
+                <SheetTitle className="text-left font-sans text-[19px] font-extrabold tracking-[-0.06em] text-ink">
+                  lensconnect<span className="text-forest">.</span>
                 </SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col gap-4 mt-6">
-                {navLinks.map((link) => {
-                  if (!link.roles.includes(currentRole)) return null;
-                  const active = isActiveLink(link.href);
-                  return (
-                    <SheetClose asChild key={link.href}>
-                      <Link
-                        href={link.href}
-                        className={`text-base p-3 font-medium transition-colors flex items-center gap-3 rounded-lg ${
-                          active
-                            ? "bg-primary/10 text-primary"
-                            : "hover:bg-muted text-foreground/80 hover:text-foreground"
-                        }`}
-                      >
-                        <link.icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                        {link.label}
-                      </Link>
-                    </SheetClose>
-                  );
-                })}
+              <nav aria-label="Mobile navigation" className="flex flex-col gap-1 px-4">
+                {navLinks.map((link) => (
+                  <SheetClose asChild key={link.href}>
+                    {renderNavLink(link, true)}
+                  </SheetClose>
+                ))}
+                {user && (
+                  <SheetClose asChild>
+                    <Link
+                      href={dashboardHref}
+                      className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-forest hover:bg-accent"
+                    >
+                      <LayoutDashboard aria-hidden="true" className="size-4 shrink-0" />
+                      Dashboard
+                    </Link>
+                  </SheetClose>
+                )}
                 {!user && (
                   <>
-                    <div className="h-px bg-border my-2" />
                     <SheetClose asChild>
-                      <Link href="/login" className="flex items-center gap-2 text-base font-medium">
-                        Log in
+                      <Link
+                        href="/login"
+                        className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-ink hover:bg-secondary"
+                      >
+                        Sign in
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
-                      <Link href="/signup" className="flex items-center gap-2 text-base font-medium text-primary">
-                        Sign up
+                      <Link
+                        href="/signup"
+                        className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-forest hover:bg-accent"
+                      >
+                        Create an account
                       </Link>
                     </SheetClose>
                   </>
                 )}
-              </div>
+              </nav>
             </SheetContent>
           </Sheet>
         </div>

@@ -16,7 +16,8 @@ interface AuthContextType {
     email: string,
     password: string,
     fullname: string,
-    role: "client" | "photographer"
+    role: "client" | "photographer",
+
   ) => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;

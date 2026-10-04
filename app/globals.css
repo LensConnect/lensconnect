@@ -33,6 +33,17 @@
   --line-strong: #d8d5ce;
   --surface: #ffffff;
   --wash: #f3f1eb;
+  --neutral-50: #faf9f6;
+  --neutral-100: #f3f1eb;
+  --neutral-200: #e7e5e0;
+  --neutral-300: #d8d5ce;
+  --neutral-400: #858981;
+  --neutral-500: #62665f;
+  --neutral-600: #555952;
+  --neutral-700: #454943;
+  --neutral-800: #30332f;
+  --neutral-900: #171717;
+  --neutral-950: #111510;
   --sidebar: #faf9f6;
   --sidebar-foreground: #171717;
   --sidebar-primary: #244c3a;
@@ -63,6 +74,17 @@
   --border: #383d37;
   --input: #41473f;
   --ring: #8bb397;
+  --neutral-50: #171917;
+  --neutral-100: #20231f;
+  --neutral-200: #252a25;
+  --neutral-300: #383d37;
+  --neutral-400: #41473f;
+  --neutral-500: #777f76;
+  --neutral-600: #b1b6ae;
+  --neutral-700: #c4c8c1;
+  --neutral-800: #d9ddd6;
+  --neutral-900: #f7f6f2;
+  --neutral-950: #ffffff;
   --sidebar: #171917;
   --sidebar-foreground: #f7f6f2;
   --sidebar-primary: #8bb397;
@@ -76,6 +98,61 @@
 @theme inline {
   --font-sans: var(--font-dm-sans);
   --font-serif: var(--font-newsreader);
+  --color-gray-50: var(--neutral-50);
+  --color-gray-100: var(--neutral-100);
+  --color-gray-200: var(--neutral-200);
+  --color-gray-300: var(--neutral-300);
+  --color-gray-400: var(--neutral-400);
+  --color-gray-500: var(--neutral-500);
+  --color-gray-600: var(--neutral-600);
+  --color-gray-700: var(--neutral-700);
+  --color-gray-800: var(--neutral-800);
+  --color-gray-900: var(--neutral-900);
+  --color-gray-950: var(--neutral-950);
+  --color-zinc-50: var(--neutral-50);
+  --color-zinc-100: var(--neutral-100);
+  --color-zinc-200: var(--neutral-200);
+  --color-zinc-300: var(--neutral-300);
+  --color-zinc-400: var(--neutral-400);
+  --color-zinc-500: var(--neutral-500);
+  --color-zinc-600: var(--neutral-600);
+  --color-zinc-700: var(--neutral-700);
+  --color-zinc-800: var(--neutral-800);
+  --color-zinc-900: var(--neutral-900);
+  --color-zinc-950: var(--neutral-950);
+  --color-slate-50: var(--neutral-50);
+  --color-slate-100: var(--neutral-100);
+  --color-slate-200: var(--neutral-200);
+  --color-slate-300: var(--neutral-300);
+  --color-slate-400: var(--neutral-400);
+  --color-slate-500: var(--neutral-500);
+  --color-slate-600: var(--neutral-600);
+  --color-slate-700: var(--neutral-700);
+  --color-slate-800: var(--neutral-800);
+  --color-slate-900: var(--neutral-900);
+  --color-slate-950: var(--neutral-950);
+  --color-stone-50: var(--neutral-50);
+  --color-stone-100: var(--neutral-100);
+  --color-stone-200: var(--neutral-200);
+  --color-stone-300: var(--neutral-300);
+  --color-stone-400: var(--neutral-400);
+  --color-stone-500: var(--neutral-500);
+  --color-stone-600: var(--neutral-600);
+  --color-stone-700: var(--neutral-700);
+  --color-stone-800: var(--neutral-800);
+  --color-stone-900: var(--neutral-900);
+  --color-stone-950: var(--neutral-950);
+  --color-neutral-50: var(--neutral-50);
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+  --color-neutral-950: var(--neutral-950);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -124,6 +201,15 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-newsreader), serif;
   }
 
   a,

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUpRight, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 
+import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,17 +56,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-line">
-        <div className="mx-auto flex min-h-[72px] max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-8">
-          <Link href="/" aria-label="LensConnect home" className="inline-flex min-h-11 items-center gap-2.5 text-[18px] font-semibold tracking-[-0.055em] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest">
-            <span className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-white"><Image src="/logo.png" alt="" width={40} height={40} className="size-full object-cover" /></span>
-            <span>LensConnect</span>
-          </Link>
-          <Link href="/photographers" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink underline-offset-4 hover:text-forest hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest">
-            Browse photographers<ArrowUpRight className="size-4" aria-hidden="true" />
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="mx-auto grid min-h-[calc(100dvh-145px)] max-w-[1320px] grid-cols-1 items-center gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-[minmax(360px,0.86fr)_minmax(0,1.14fr)] lg:gap-14 lg:py-12">
         <section aria-labelledby="sign-in-title" className="order-1 mx-auto w-full max-w-[470px] py-3 lg:mx-0 lg:py-12">

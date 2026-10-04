@@ -108,7 +108,7 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50/50 dark:bg-zinc-950/50 text-foreground">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Header />
 
       <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 flex-1">

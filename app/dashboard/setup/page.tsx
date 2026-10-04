@@ -248,7 +248,7 @@ throw new Error(errorData.error || `Profile setup failed with status ${response.
   ]
 
   return (
-    <div className="min-h-screen bg-white  text-foreground">
+    <div className="min-h-screen bg-paper text-ink">
       <Header />
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-7 sm:mb-9">

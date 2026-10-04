@@ -7,6 +7,7 @@ export interface User {
   role: UserRole
   avatar?: string
   createdAt: Date
+  profile_image_url?: string
 }
 
 export interface users {
@@ -14,7 +15,7 @@ export interface users {
   email: string
   fullname:string;
   role:string;
-
+  profile_image_url:string;
   
 }
 
