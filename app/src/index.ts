@@ -1,13 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { relations } from "./db/schema";
-import path from "path";
-import dotenv from "dotenv";
-dotenv.config();
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
-// 2. Then load standard .env (fills in anything missing, won't overwrite .env.local variables)
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set. Define it in .env.local");
