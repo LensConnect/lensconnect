@@ -139,6 +139,24 @@ export const photographer_portfolios = mysqlTable("photographer_portfolios", {
   
 })
 
+export const  photographer_datasets = mysqlTable("photographer_datasets", {
+  id: int().primaryKey().autoincrement(),
+  title: varchar({ length: 255 }).notNull(),
+  city: varchar({ length: 255 }).notNull(),
+  state: varchar({ length: 255 }).notNull(),
+  countryCode: varchar({ length: 255 }).notNull(),
+  reviewsCount: int().notNull(),
+  totalScore: int().notNull(),
+  categories: json("categories").$type<string[]>().default([]),
+  categoryName: varchar({ length: 255 }).notNull(),
+  website: varchar({length: 255}).notNull(),
+  claimed: int().references(() => users.id, { onDelete: "cascade" }),
+  phone: varchar({length:255}).notNull(),
+  url: varchar({length:255}).notNull(),
+  
+  street: varchar({length:255}).notNull(),
+})
+
 
 
 

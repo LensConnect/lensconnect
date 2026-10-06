@@ -403,7 +403,7 @@ export default function PhotographerProfilePage({
       </footer>
 
       <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-none border-line bg-paper p-5 text-ink sm:max-w-xl sm:p-7">
+        <DialogContent className="inset-4 m-auto h-fit w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] max-w-xl translate-x-0 translate-y-0 overflow-y-auto rounded-none border-line bg-paper p-5 text-ink sm:p-7">
           <DialogHeader className="pr-8 text-left">
             <DialogTitle className="font-serif text-3xl font-normal tracking-tight">Request a booking</DialogTitle>
             <DialogDescription className="text-sm leading-6 text-muted-foreground">Share your shoot details with {profile.fullname}. The listed rate is hourly; the estimate updates with your duration.</DialogDescription>

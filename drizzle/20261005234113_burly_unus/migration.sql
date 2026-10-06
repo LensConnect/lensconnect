@@ -1,0 +1,1 @@
+ALTER TABLE `photographer_datasets` MODIFY COLUMN `claimed` int;

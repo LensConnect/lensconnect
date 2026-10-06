@@ -34,6 +34,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { link } from "fs/promises";
 
 export function Header() {
   const { user, logout, isLoading } = useAuth();
@@ -75,6 +76,7 @@ export function Header() {
           { href: "/dashboard/client/jobs", label: "Jobs", icon: BriefcaseBusiness },
           { href: "/messages", label: "Messages", icon: MessageSquare },
           { href: "/profile", label: "Profile", icon: UserRound },
+          {href:"/discover", label:"Discover", icon:Search}
         ]
       : user.role === "photographer"
         ? [
@@ -83,6 +85,7 @@ export function Header() {
             { href: "/applications", label: "Applications", icon: BriefcaseBusiness },
             { href: "/messages", label: "Messages", icon: MessageSquare },
             { href: "/profile", label: "Profile", icon: UserRound },
+            {href:"/discover", label:"Discover", icon:Search}
           ]
         : [
             { href: "/admin", label: "Admin", icon: Shield },
@@ -111,7 +114,7 @@ export function Header() {
         aria-current={active ? "page" : undefined}
         className={
           mobile
-            ? `flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors ${
+            ? `flex min-h-11 items-center  gap-3 rounded-md px-3 text-sm font-medium transition-colors ${
                 active
                   ? "bg-accent text-accent-foreground"
                   : "text-foreground hover:bg-secondary"
@@ -141,13 +144,15 @@ export function Header() {
             lensconnect<span className="text-forest">.</span>
           </span>
         </Link>
+      <nav
+        aria-label="Main navigation"
+        className="hidden lg:flex items-center justify-center gap-2 max-w-4xl mx-auto"
+      >
+  {navLinks.map((link) => renderNavLink(link))}
+</nav>
 
-        <nav
-          aria-label="Main navigation"
-          className="hidden min-w-0 flex-1 items-center justify-center gap-2 overflow-x-auto lg:flex"
-        >
-          {navLinks.map((link) => renderNavLink(link))}
-        </nav>
+
+
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {user && !isLoading ? (
