@@ -374,7 +374,9 @@ export default function DiscoverPage() {
                         <Star className="h-3.5 w-3.5 fill-primary text-primary" />
                         {photographer.rating > 0 ? photographer.rating.toFixed(1) : "New"} ({photographer.reviewsCount})
                       </span>
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      
+                        <ArrowRight className="h-3.5 w-3.5" />
+                  
                     </div>
                   </div>
                 </Link>
