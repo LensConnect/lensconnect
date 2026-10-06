@@ -1,0 +1,1 @@
+ALTER TABLE `photographer_datasets` ADD `url` varchar(255) NOT NULL;

@@ -153,7 +153,6 @@ export const  photographer_datasets = mysqlTable("photographer_datasets", {
   claimed: int().references(() => users.id, { onDelete: "cascade" }),
   phone: varchar({length:255}).notNull(),
   url: varchar({length:255}).notNull(),
-  
   street: varchar({length:255}).notNull(),
 })
 

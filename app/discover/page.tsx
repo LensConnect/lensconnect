@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Link from "next/link";
 
 import {
   Search,
@@ -18,6 +19,7 @@ import {
   RotateCcw,
   ArrowRight,
   CheckCircle2,
+ 
 } from "lucide-react";
 
 interface DatasetPhotographer {
@@ -30,6 +32,7 @@ interface DatasetPhotographer {
   website: string;
   phone: string;
   street: string;
+  url: string;
 }
 
 const specialtiesList = [
@@ -309,8 +312,8 @@ export default function DiscoverPage() {
             ) : filteredPhotographers.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {filteredPhotographers.map((photographer, idx) => (
+                <Link key={photographer.id || idx} href={photographer.url || '#'}>
                   <div
-                    key={photographer.id || idx}
                     className="group block rounded-3xl border border-border/80 bg-card overflow-hidden shadow-xs hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between"
                   >
                     <div>
@@ -374,8 +377,10 @@ export default function DiscoverPage() {
                       <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                   </div>
+                </Link>
                 ))}
               </div>
+            
             ) : (
               <div className="py-20 px-6 text-center rounded-3xl border-2 border-dashed border-border/80 bg-card/50 flex flex-col items-center justify-center gap-3">
                 <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
@@ -397,6 +402,7 @@ export default function DiscoverPage() {
                 </Button>
               </div>
             )}
+            
           </div>
         </div>
       </main>

@@ -1,0 +1,1 @@
+ALTER TABLE `photographer_datasets` MODIFY COLUMN `url` varchar(255);

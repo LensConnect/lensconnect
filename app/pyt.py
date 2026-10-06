@@ -20,6 +20,7 @@ column_mapping = {
     'categoryName': 'categoryName',
     'website':      'website',
     'phone':        'phone',
+    'url':          'url',
     'street':       'street'
 }
 # =========================================================================
