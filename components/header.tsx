@@ -144,10 +144,10 @@ export function Header() {
             lensconnect<span className="text-forest">.</span>
           </span>
         </Link>
-      <nav
-        aria-label="Main navigation"
-        className="md:hidden lg:flex items-center justify-center gap-2 max-w-4xl mx-auto"
-      >
+    <nav
+  aria-label="Main navigation"
+  className="hidden lg:flex flex-1 items-center justify-center gap-1"
+>
   {navLinks.map((link) => renderNavLink(link))}
 </nav>
 
