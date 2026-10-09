@@ -146,7 +146,7 @@ export function Header() {
         </Link>
     <nav
   aria-label="Main navigation"
-  className="hidden lg:flex flex-1 items-center justify-center gap-1"
+  className="sm:hidden md:hidden lg:flex flex-1 items-center justify-center gap-1"
 >
   {navLinks.map((link) => renderNavLink(link))}
 </nav>

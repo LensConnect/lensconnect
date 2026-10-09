@@ -23,7 +23,7 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "LensConnect - Connect with Professional Photographers",
+  title: "LensConnect - Connect with Professional Photographers. Making hiring a photographer in Nigeria dramatically easier and safer.",
   description:
     "Book professional photographers for events, portraits, products, and real estate",
   generator: "v0.app",

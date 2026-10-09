@@ -23,7 +23,7 @@ column_mapping = {
     'url':          'url',
     'street':       'street'
 }
-# =========================================================================
+
 
 def clean_scraper_data():
     print("Loading messy file...")
