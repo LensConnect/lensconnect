@@ -95,7 +95,7 @@ function imagesFor(item: PortfolioItem) {
 export default function PhotographerProfilePage({
   params,
 }: {
-  params: Promise<{ full_name: string; id: string }>;
+  params: Promise<{ full_name: string; id: number }>;
 }) {
   const { id } = use(params);
   const { user } = useAuth();
@@ -124,7 +124,7 @@ export default function PhotographerProfilePage({
       setLoading(true);
       setError(false);
       try {
-        const response = await fetch(`/api/get_photographersId?id=${encodeURIComponent(id)}`);
+        const response = await fetch(`/api/get_photographersId?id=${id}`);
         const result = await response.json();
         if (!response.ok || !result.success || !result.data?.[0]) throw new Error("Photographer profile not found");
         const photographer = result.data[0] as PhotographerProfile;
