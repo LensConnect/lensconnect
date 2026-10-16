@@ -25,7 +25,7 @@ export async function createToken(payload: SessionPayload): Promise<string> {
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("30min")
     .sign(encodedKey);
 
   return jwt;

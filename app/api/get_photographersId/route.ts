@@ -24,6 +24,7 @@ export async function GET(req:NextRequest) {
 
     const {searchParams} = new URL(req.url);
     const id = searchParams.get('id');
+    const numId = Number(id)
     
 
     try{

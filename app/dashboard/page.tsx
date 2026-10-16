@@ -102,6 +102,9 @@ export default function PhotographerDashboardPage() {
     }
   }, [user?.id]);
 
+
+
+
   useEffect(() => {
     if (user?.role === "photographer") void fetchBookings();
   }, [user, fetchBookings]);
@@ -140,6 +143,38 @@ export default function PhotographerDashboardPage() {
   const completedBookings = bookings.filter((booking) => booking.status === "completed");
   const primaryRequest = pendingBookings[0];
   const otherPending = pendingBookings.slice(1);
+
+
+   async function openStudio() {
+    try {
+      const response = await fetch("/api/studio/authorize", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ?? "Could not authorize Studio"
+        );
+      }
+
+      console.log("Authorization response:", data);
+console.log("Authorization code received:", Boolean(data.code));
+
+      window.location.href =
+        `http://localhost:3000/auth/callback#code=${encodeURIComponent(data.code)}`;
+    } catch (error) {
+      console.error("Unable to open Studio:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to open Studio."
+      );
+    }
+  }
 
   return (
     <div className="min-h-screen bg-paper text-ink">
@@ -220,6 +255,9 @@ export default function PhotographerDashboardPage() {
             </nav>
           </aside>
         </div>
+         <button onClick={openStudio}>
+          Open Studio
+        </button>
       </main>
     </div>
   );

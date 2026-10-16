@@ -1,9 +1,10 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { relations } from "./db/schema"; // Verify your folder path is correct
+import { sql} from "drizzle-orm";
 
 const rawUrl = process.env.DATABASE_URL?.trim();
-let connectionString = rawUrl || "mysql://localhost:3306/defaultdb";
+let connectionString = rawUrl || "mysql://root:Israel21@localhost:3306/lensconnect";
 let sslConfig: any = false;
 
 if (rawUrl) {
@@ -33,9 +34,20 @@ const pool = mysql.createPool({
   bigNumberStrings: true,
 });
 
+
+
 // 💡 WORKAROUND FOR 1.0.0-RC.4 BUG: 
 // Pass 'pool.pool' as the client so Drizzle's internal framework can find the '.config' property!
 export const db = drizzle({
   client: (pool as any).pool ?? pool,
   relations: relations,
 });
+
+const result = await db.execute(sql`
+  SELECT
+    DATABASE() AS database_name,
+    @@hostname AS database_host,
+    @@session.time_zone AS session_timezone
+`);
+
+console.log(result);

@@ -34,7 +34,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { link } from "fs/promises";
+import { json } from "zod";
 
 export function Header() {
   const { user, logout, isLoading } = useAuth();
@@ -114,12 +114,12 @@ export function Header() {
         aria-current={active ? "page" : undefined}
         className={
           mobile
-            ? `flex min-h-11 items-center  gap-3 rounded-md px-3 text-sm font-medium transition-colors ${
+            ? `flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors ${
                 active
                   ? "bg-accent text-accent-foreground"
                   : "text-foreground hover:bg-secondary"
               }`
-            : `inline-flex min-h-11 shrink-0 items-center whitespace-nowrap px-2 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest ${
+            : `inline-flex min-h-11 shrink-0 items-center whitespace-nowrap px-2 md:px-3 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest truncate ${
                 active
                   ? "text-forest"
                   : "text-muted-foreground hover:text-forest"
@@ -131,6 +131,8 @@ export function Header() {
       </Link>
     );
   };
+
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-line bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85">
@@ -144,12 +146,12 @@ export function Header() {
             lensconnect<span className="text-forest">.</span>
           </span>
         </Link>
-    <nav
-  aria-label="Main navigation"
-  className="sm:hidden md:hidden lg:flex flex-1 items-center justify-center gap-1"
->
-  {navLinks.map((link) => renderNavLink(link))}
-</nav>
+        <nav
+          aria-label="Main navigation"
+          className="hidden flex-1 items-center justify-center gap-1 md:flex lg:gap-2 flex-wrap"
+        >
+          {navLinks.map((link) => renderNavLink(link))}
+        </nav>
 
 
 
@@ -234,7 +236,7 @@ export function Header() {
                 variant="outline"
                 size="icon"
                 aria-label="Open navigation menu"
-                className="size-11 border-line text-ink lg:hidden"
+                className="size-11 border-line text-ink block md:hidden"
               >
                 <Menu aria-hidden="true" className="size-5" />
               </Button>
