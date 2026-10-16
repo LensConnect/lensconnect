@@ -37,7 +37,7 @@ export async function GET(req:NextRequest) {
             SELECT photographer_profiles.*, profiles.website AS website
             FROM photographer_profiles
             LEFT JOIN profiles ON profiles.userId = photographer_profiles.userId
-            WHERE photographer_profiles.userId = ${id} OR photographer_profiles.id = ${id}
+            WHERE photographer_profiles.userId = ${numId} OR photographer_profiles.id = ${numId}
         `);
         const normalizedData = Array.isArray(data)
             ? data.map((profile) => ({
