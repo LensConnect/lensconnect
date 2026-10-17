@@ -95,7 +95,7 @@ function imagesFor(item: PortfolioItem) {
 export default function PhotographerProfilePage({
   params,
 }: {
-  params: Promise<{ full_name: string; id: number }>;
+  params: Promise<{ full_name: string; id: string }>;
 }) {
   const { id } = use(params);
   const { user } = useAuth();
@@ -234,7 +234,7 @@ export default function PhotographerProfilePage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          photographerId: id,
+          photographerId: profile.id,
           startTime: booking.startTime,
           startDate: booking.startDate,
           durationHours,

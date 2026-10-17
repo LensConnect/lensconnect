@@ -24,12 +24,15 @@ export async function GET(req:NextRequest) {
 
     const {searchParams} = new URL(req.url);
     const id = searchParams.get('id');
-    const numId = Number(id)
     
 
     try{
-        if(!id){
-            return NextResponse.json({error:'No Photograper with this id found' , status:404 , success:false})
+        const profileId = Number(id);
+        if(!id || !Number.isSafeInteger(profileId) || profileId <= 0){
+            return NextResponse.json(
+                {error:'A valid photographer profile id is required', status:400, success:false},
+                {status:400}
+            );
         }
 
 
@@ -37,20 +40,26 @@ export async function GET(req:NextRequest) {
             SELECT photographer_profiles.*, profiles.website AS website
             FROM photographer_profiles
             LEFT JOIN profiles ON profiles.userId = photographer_profiles.userId
-            WHERE photographer_profiles.userId = ${numId} OR photographer_profiles.id = ${numId}
+            WHERE photographer_profiles.id = ${profileId}
+            LIMIT 1
         `);
-        const normalizedData = Array.isArray(data)
-            ? data.map((profile) => ({
+        if (!Array.isArray(data) || data.length === 0) {
+            return NextResponse.json(
+                {data:[], error:'Photographer profile not found', status:404, success:false},
+                {status:404}
+            );
+        }
+        const normalizedData = data.map((profile) => ({
                 ...profile,
                 specialties: parseSpecialties(profile.specialties),
-            }))
-            : data;
+            }));
 
         return NextResponse.json({data: normalizedData , error:'' ,status:200 , success:true});
 
 
     }
     catch(err){
-        return NextResponse.json({error:'Failed to fetch photographer',status:500, success:false})
+        console.error('Failed to fetch photographer profile:', err);
+        return NextResponse.json({error:'Failed to fetch photographer',status:500, success:false}, {status:500});
     }
 }

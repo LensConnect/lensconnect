@@ -12,7 +12,7 @@ interface PhotographerCardProps {
 export function PhotographerCard({ photographer }: PhotographerCardProps) {
   return (
     <Link
-      href={`/photographer/${photographer.user.fullname}/${photographer.userId}`}
+      href={`/photographer/${encodeURIComponent(photographer.user.fullname || photographer.fullname || "creator")}/${photographer.id}`}
       className="group block break-inside-avoid h-full"
     >
       <div className="relative rounded-[2rem] overflow-hidden bg-secondary/20 hover:bg-secondary/40 transition-all duration-500 border border-border/40 h-full flex flex-col shadow-sm hover:shadow-2xl hover:-translate-y-1">
