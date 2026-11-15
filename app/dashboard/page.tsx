@@ -192,7 +192,35 @@ console.log("Authorization code received:", Boolean(data.code));
             <Button asChild className="min-h-[46px] rounded-none px-4 text-sm font-semibold">
               <Link href="/dashboard/portfolio"><ImageIcon className="size-4" aria-hidden="true" />Portfolio</Link>
             </Button>
+            <Button variant="outline" asChild className="min-h-[46px] rounded-none border-line-strong bg-transparent px-4 text-sm font-semibold">
+              <Link href="/dashboard/website/templates"><ArrowUpRight className="size-4" aria-hidden="true" />Choose website template</Link>
+            </Button>
           </div>
+        </section>
+
+        <section
+          aria-labelledby="website-template-heading"
+          className="mb-10 flex flex-col gap-5 border border-line-strong bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7"
+        >
+          <div className="flex items-start gap-4">
+            <div className="flex size-11 shrink-0 items-center justify-center border border-line bg-wash text-forest">
+              <ImageIcon className="size-5" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 id="website-template-heading" className="font-serif text-2xl">
+                Build your photography website
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Choose from the available designs and preview how your profile and portfolio look as a website.
+              </p>
+            </div>
+          </div>
+          <Button asChild className="min-h-[46px] shrink-0 rounded-none px-5 text-sm font-semibold">
+            <Link href="/dashboard/website/templates">
+              Choose a template
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </Button>
         </section>
 
         <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(310px,0.78fr)] lg:gap-14">
@@ -247,6 +275,7 @@ console.log("Authorization code received:", Boolean(data.code));
               <h2 className="text-[13px] font-semibold text-muted-foreground">Workspace</h2>
               <div className="mt-2 divide-y divide-line">
                 <WorkspaceLink href="/dashboard/portfolio" icon={<ImageIcon className="size-4" aria-hidden="true" />} label="Portfolio" />
+                <WorkspaceLink href="/dashboard/website/templates" icon={<ArrowUpRight className="size-4" aria-hidden="true" />} label="Website templates" />
                 <WorkspaceLink href="/photographer/find-jobs" icon={<Search className="size-4" aria-hidden="true" />} label="Find jobs" />
                 <WorkspaceLink href="/applications" icon={<CheckCircle2 className="size-4" aria-hidden="true" />} label="Applications" />
                 <WorkspaceLink href="/profile" icon={<UserRound className="size-4" aria-hidden="true" />} label="Profile" />

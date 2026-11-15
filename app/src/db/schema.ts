@@ -15,6 +15,7 @@ import {
   customType,
 } from 'drizzle-orm/mysql-core';
 import { defineRelations, sql } from 'drizzle-orm';
+import { WebsiteContent } from "@/lib/types";
 
 const jsonArrayParser = customType<{ data: string[]; driverData: string }>({
   dataType() {
@@ -190,6 +191,128 @@ export const photographer_datasets = mysqlTable('photographer_datasets', {
   url: varchar({ length: 255 }).notNull(),
   street: varchar({ length: 255 }).notNull(),
 });
+
+export const websiteTemplates = mysqlTable(
+  "website_templates",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+
+    key: varchar("key", { length: 50 })
+      .notNull()
+      .unique(),
+
+    name: varchar("name", { length: 100 })
+      .notNull(),
+
+    description: varchar("description", { length: 500 }),
+
+    previewImage: varchar("preview_image", { length: 500 }),
+
+    version: int("version").default(1).notNull(),
+
+    isActive: boolean("is_active")
+      .default(true)
+      .notNull(), 
+
+      createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+    
+    })
+
+
+    export const photographerWebsites = mysqlTable(
+  "photographer_websites",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .unique(),
+
+    templateId: varchar("template_id", { length: 36 })
+      .notNull(),
+
+    slug: varchar("slug", { length: 100 })
+      .notNull()
+      .unique(),
+
+    status: mysqlEnum("status", [
+      "draft",
+      "published",
+      "unpublished",
+      "suspended",
+    ]).default("draft").notNull(),
+
+    draftContent: json("draft_content")
+      .$type<WebsiteContent>()
+      .notNull(),
+
+    publishedContent: json("published_content")
+      .$type<WebsiteContent>(),
+
+    draftRevision: int("draft_revision")
+      .default(1).notNull(),
+
+    publishedRevision: int("published_revision"),
+
+    publishedAt: timestamp("published_at"),
+
+    createdAt: timestamp("created_at")
+      .defaultNow().notNull(),
+
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .onUpdateNow().notNull(),
+  }
+);
+
+
+export const websiteVersions = mysqlTable(
+  "website_versions",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+
+    websiteId: varchar("website_id", { length: 36 })
+      .notNull(),
+
+    revision: int("revision").notNull(),
+
+    templateId: varchar("template_id", { length: 36 })
+      .notNull(),
+
+    content: json("content")
+      .$type<WebsiteContent>()
+      .notNull(),
+
+    publishedAt: timestamp("published_at")
+      .defaultNow()
+      .notNull(),
+  }
+);
+
+export const websiteEvents = mysqlTable(
+  "website_events",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+
+    websiteId: varchar("website_id", { length: 36 })
+      .notNull(),
+
+    eventType: mysqlEnum("event_type", [
+      "page_view",
+      "portfolio_view",
+      "booking_click",
+      "contact_click",
+    ]).notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  }
+);
+
+
 
 export type MessageSelect = typeof chatmessage.$inferSelect;
 export type MessageInsert = typeof chatmessage.$inferInsert;

@@ -112,3 +112,59 @@ export interface JobApplication {
   created_at: Date;
   jobs:Job;
 }
+
+export type WebsiteContent = {
+  theme: {
+    primaryColor: string;
+    backgroundColor: string;
+    textColor: string;
+    fontFamily: "sans" | "serif";
+  };
+
+  sections: {
+    hero: {
+      enabled: boolean;
+      heading: string;
+      description: string;
+      ctaText: string;
+      imagePortfolioId: string | null;
+    };
+
+    about: {
+      enabled: boolean;
+      biography: string;
+      imagePortfolioId: string | null;
+    };
+
+    portfolio: {
+      enabled: boolean;
+      title: string;
+      portfolioItemIds: string[];
+    };
+
+    services: {
+      enabled: boolean;
+      serviceIds: string[];
+    };
+
+    testimonials: {
+      enabled: boolean;
+    };
+
+    contact: {
+      enabled: boolean;
+      email: string;
+      phone: string | null;
+      instagram: string | null;
+    };
+  };
+
+  sectionOrder: (
+    | "hero"
+    | "about"
+    | "portfolio"
+    | "services"
+    | "testimonials"
+    | "contact"
+  )[];
+};
