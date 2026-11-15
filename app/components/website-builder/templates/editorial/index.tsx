@@ -39,7 +39,6 @@ export default function EditorialTemplate({
             return (
               <EditorialHero
                 key="hero"
-
                 name={photographer.name}
                 heading={content.sections.hero.heading || "Stories with a quiet, cinematic pulse."}
                 description={content.sections.hero.description || "I create intimate, elevated imagery that feels deeply personal."}
