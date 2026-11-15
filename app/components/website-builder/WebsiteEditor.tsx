@@ -382,7 +382,7 @@ export function WebsiteEditor({ initialData }: { initialData: WebsiteTemplatePro
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#171717] text-neutral-100">
-      <header className="z-10 flex min-h-16 shrink-0 items-center gap-3 border-b border-[#383838] bg-[#202020] px-3 sm:px-5">
+      <header className="z-10 grid min-h-16 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2 border-b border-[#383838] bg-[#202020] px-2 py-2 sm:flex sm:gap-3 sm:px-5 sm:py-0">
         <Link
           href="/dashboard/website/templates"
           aria-label="Back to template selection"
@@ -412,53 +412,55 @@ export function WebsiteEditor({ initialData }: { initialData: WebsiteTemplatePro
           {hasChanges ? "Unsaved changes" : "Preview only"}
         </div>
 
-        <div className="flex shrink-0 items-center border border-[#414141] bg-[#292929] p-0.5" aria-label="Preview size">
-          {previewModes.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              aria-label={`${label} preview`}
-              aria-pressed={previewMode === id}
-              title={`${label} preview`}
-              onClick={() => setPreviewMode(id)}
-              className={`flex size-8 items-center justify-center transition ${previewMode === id ? "bg-[#d9c2a5] text-neutral-950" : "text-neutral-400 hover:bg-[#353535] hover:text-white"}`}
-            >
-              <Icon className="size-4" aria-hidden="true" />
-            </button>
-          ))}
+        <div className="col-span-2 flex min-w-0 items-center justify-between gap-2 sm:contents">
+          <div className="flex shrink-0 items-center border border-[#414141] bg-[#292929] p-0.5" aria-label="Preview size">
+            {previewModes.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                aria-label={`${label} preview`}
+                aria-pressed={previewMode === id}
+                title={`${label} preview`}
+                onClick={() => setPreviewMode(id)}
+                className={`flex size-8 items-center justify-center transition ${previewMode === id ? "bg-[#d9c2a5] text-neutral-950" : "text-neutral-400 hover:bg-[#353535] hover:text-white"}`}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPreviewOnly((current) => !current)}
+            aria-label={previewOnly ? "Exit preview" : "Preview website"}
+            title={previewOnly ? "Exit preview" : "Preview website"}
+            className="inline-flex size-9 shrink-0 items-center justify-center border border-[#484848] text-xs font-medium text-neutral-200 transition hover:bg-[#303030] md:size-auto md:min-h-9 md:gap-2 md:px-3"
+          >
+            {previewOnly ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+            <span className="hidden md:inline">{previewOnly ? "Exit preview" : "Preview website"}</span>
+          </button>
+
+          <button
+            type="button"
+            disabled
+            title="Publishing is not available yet."
+            className="min-h-9 shrink-0 bg-[#d9c2a5] px-3 text-xs font-semibold text-neutral-900 opacity-50 sm:px-4"
+          >
+            Publish
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setPreviewOnly((current) => !current)}
-          aria-label={previewOnly ? "Exit preview" : "Preview website"}
-          title={previewOnly ? "Exit preview" : "Preview website"}
-          className="inline-flex size-9 shrink-0 items-center justify-center border border-[#484848] text-xs font-medium text-neutral-200 transition hover:bg-[#303030] md:size-auto md:min-h-9 md:gap-2 md:px-3"
-        >
-          {previewOnly ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
-          <span className="hidden md:inline">{previewOnly ? "Exit preview" : "Preview website"}</span>
-        </button>
-
-        <button
-          type="button"
-          disabled
-          title="Publishing is not available yet."
-          className="min-h-9 shrink-0 bg-[#d9c2a5] px-3 text-xs font-semibold text-neutral-900 opacity-50 sm:px-4"
-        >
-          Publish
-        </button>
       </header>
 
       <div className={previewOnly
-        ? "grid min-h-0 flex-1 grid-cols-1"
-        : "grid min-h-0 min-w-[760px] flex-1 grid-cols-[224px_minmax(224px,1fr)_312px]"}
+        ? "grid min-h-0 min-w-0 flex-1 grid-cols-1"
+        : "grid min-h-0 min-w-0 flex-1 grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[224px_minmax(0,1fr)_312px]"}
       >
         {!previewOnly ? (
-          <aside className="flex min-h-0 min-w-0 flex-col border-r border-[#383838] bg-[#222222]">
-            <div className="border-b border-[#383838] px-4 py-4">
+          <aside className="order-1 flex min-h-0 min-w-0 flex-col border-b border-[#383838] bg-[#222222] md:col-start-1 md:row-span-2 md:row-start-1 md:border-r md:border-b-0 lg:order-none lg:row-span-1">
+            <div className="shrink-0 border-b border-[#383838] px-3 py-3 md:px-4 md:py-4">
               <h1 className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">Website sections</h1>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto p-2 md:min-h-0 md:flex-col md:overflow-x-hidden md:overflow-y-auto">
               {sections.map(({ id, label, icon: Icon }) => {
                 const isSelected = selectedSection === id;
                 const hasContent = isContentSection(id);
@@ -468,7 +470,7 @@ export function WebsiteEditor({ initialData }: { initialData: WebsiteTemplatePro
                 return (
                   <div
                     key={id}
-                    className={`mb-1 flex min-h-10 items-center gap-1 border transition ${isSelected ? "border-[#514a40] bg-[#34312d]" : "border-transparent hover:bg-[#2d2d2d]"}`}
+                    className={`mb-1 flex min-h-10 min-w-fit shrink-0 items-center gap-1 border transition md:w-full md:min-w-0 ${isSelected ? "border-[#514a40] bg-[#34312d]" : "border-transparent hover:bg-[#2d2d2d]"}`}
                   >
                     <button
                       type="button"
@@ -517,7 +519,7 @@ export function WebsiteEditor({ initialData }: { initialData: WebsiteTemplatePro
                 );
               })}
             </div>
-            <div className="border-t border-[#383838] p-3">
+            <div className="hidden border-t border-[#383838] p-3 md:block">
               <Link href="/dashboard/website/templates" className="flex min-h-9 items-center gap-2 px-2 text-xs font-medium text-neutral-400 hover:text-white">
                 <LayoutTemplate className="size-4" aria-hidden="true" />
                 Change template
@@ -526,7 +528,7 @@ export function WebsiteEditor({ initialData }: { initialData: WebsiteTemplatePro
           </aside>
         ) : null}
 
-        <main className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[#191919]">
+        <main className="order-3 flex min-h-[65vh] min-w-0 flex-col bg-[#191919] md:col-start-2 md:row-start-1 md:order-none md:min-h-0 lg:overflow-hidden">
           <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#383838] bg-[#242424] px-3 text-xs text-neutral-400 sm:px-4">
             <span className="flex min-w-0 items-center gap-2">
               <span className="size-2 rounded-full bg-[#a9b79b]" />
@@ -555,7 +557,7 @@ export function WebsiteEditor({ initialData }: { initialData: WebsiteTemplatePro
         </main>
 
         {!previewOnly ? (
-          <aside className="min-h-0 min-w-0 border-l border-[#383838] bg-[#222222]">
+          <aside className="order-2 min-h-0 min-w-0 border-b border-[#383838] bg-[#222222] md:col-start-2 md:row-start-2 md:order-none md:border-l md:border-b-0 lg:col-auto lg:row-auto">
             <div className="flex min-h-14 items-center justify-between border-b border-[#383838] px-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Section settings</p>
@@ -571,7 +573,7 @@ export function WebsiteEditor({ initialData }: { initialData: WebsiteTemplatePro
                 </button>
               ) : null}
             </div>
-            <div className="max-h-[calc(100dvh-120px)] overflow-y-auto p-4 sm:p-5">
+            <div className="overflow-visible p-4 sm:p-5 lg:max-h-[calc(100dvh-120px)] lg:overflow-y-auto">
               <SectionSettings
                 section={selectedSection}
                 data={data}
