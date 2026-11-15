@@ -13,25 +13,25 @@ const fallbackImage =
 export function EditorialPortfolio({ items, title }: PortfolioProps) {
   if (!items.length) {
     return (
-      <section className="bg-white px-6 py-24 md:px-12">
+      <section className="bg-white px-5 py-16 @min-[48rem]:px-12 @min-[48rem]:py-24">
         <div className="mx-auto max-w-7xl text-center">
           <p className="text-xs uppercase tracking-[0.28em] text-neutral-500">Portfolio</p>
-          <h2 className="mt-4 font-serif text-4xl md:text-6xl">No portfolio pieces yet</h2>
-          <p className="mt-5 text-neutral-600">Add photographs to this photographer profile to populate the gallery.</p>
+          <h2 className="mt-4 font-serif text-3xl @min-[48rem]:text-5xl @min-[64rem]:text-6xl">No portfolio pieces yet</h2>
+          <p className="mt-5 text-sm leading-7 text-neutral-600 @min-[48rem]:text-base">Add photographs to this photographer profile to populate the gallery.</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section id="portfolio" className="bg-white px-6 py-24 md:px-12">
+    <section id="portfolio" className="bg-white px-5 py-16 @min-[48rem]:px-12 @min-[48rem]:py-24">
       <div className="mx-auto max-w-7xl">
         <div className="mb-12 text-center">
           <p className="text-xs uppercase tracking-[0.28em] text-neutral-500">Selected Works</p>
-          <h2 className="mt-4 font-serif text-4xl md:text-6xl">{title || "Stories through my lens"}</h2>
+          <h2 className="mt-4 font-serif text-3xl @min-[48rem]:text-5xl @min-[64rem]:text-6xl">{title || "Stories through my lens"}</h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 @min-[48rem]:grid-cols-2 @min-[48rem]:gap-5">
           {items.map((item) => (
             <article key={item.id} className="group">
               <div className="relative aspect-[4/5] overflow-hidden bg-neutral-200">
@@ -44,13 +44,13 @@ export function EditorialPortfolio({ items, title }: PortfolioProps) {
                 />
               </div>
 
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <h3 className="font-serif text-2xl text-neutral-900">{item.title}</h3>
+              <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 @min-[48rem]:mt-4">
+                <h3 className="font-serif text-xl text-neutral-900 @min-[48rem]:text-2xl">{item.title}</h3>
                 {item.category ? (
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{item.category}</span>
+                  <span className="text-[9px] uppercase tracking-[0.16em] text-neutral-500 @min-[48rem]:text-[10px] @min-[48rem]:tracking-[0.2em]">{item.category}</span>
                 ) : null}
               </div>
-              {item.description ? <p className="mt-2 text-neutral-600">{item.description}</p> : null}
+              {item.description ? <p className="mt-2 text-sm leading-6 text-neutral-600 @min-[48rem]:text-base">{item.description}</p> : null}
             </article>
           ))}
         </div>

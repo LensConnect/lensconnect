@@ -15,23 +15,23 @@ export function EditorialHero({ name, heading, description, ctaText, photographe
 
   return (
     <section className="bg-[#f8f7f4]">
-      <div className="mx-auto max-w-7xl px-6 py-16 md:px-12 md:py-24">
-        <div className="grid items-center gap-12 md:grid-cols-2">
+      <div className="mx-auto max-w-7xl px-5 py-14 @min-[48rem]:px-12 @min-[48rem]:py-24">
+        <div className="grid grid-cols-1 items-center gap-10 @min-[48rem]:grid-cols-2 @min-[48rem]:gap-12">
           <div className="space-y-7">
             <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">Photography by {name}</p>
-            <h1 className="font-serif text-5xl leading-tight md:text-7xl">{heading}</h1>
-            <p className="max-w-md text-base leading-8 text-neutral-600">{description}</p>
+            <h1 className="break-words font-serif text-4xl leading-tight @min-[48rem]:text-6xl @min-[64rem]:text-7xl">{heading}</h1>
+            <p className="max-w-md text-sm leading-7 text-neutral-600 @min-[48rem]:text-base @min-[48rem]:leading-8">{description}</p>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 @min-[48rem]:gap-4">
               <a
                 href={bookingUrl}
-                className="inline-flex border border-neutral-900 px-8 py-4 text-xs uppercase tracking-[0.22em] transition hover:bg-neutral-900 hover:text-white"
+                className="inline-flex border border-neutral-900 px-5 py-3 text-[10px] uppercase tracking-[0.18em] transition hover:bg-neutral-900 hover:text-white @min-[48rem]:px-8 @min-[48rem]:py-4 @min-[48rem]:text-xs @min-[48rem]:tracking-[0.22em]"
               >
                 {ctaText || "Book a Session"}
               </a>
               <a
                 href="#portfolio"
-                className="inline-flex border border-neutral-300 bg-white px-8 py-4 text-xs uppercase tracking-[0.22em] text-neutral-700 transition hover:border-neutral-900 hover:text-neutral-900"
+                className="inline-flex border border-neutral-300 bg-white px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-neutral-700 transition hover:border-neutral-900 hover:text-neutral-900 @min-[48rem]:px-8 @min-[48rem]:py-4 @min-[48rem]:text-xs @min-[48rem]:tracking-[0.22em]"
               >
                 View Portfolio
               </a>

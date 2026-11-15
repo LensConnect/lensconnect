@@ -29,7 +29,7 @@ export default function EditorialTemplate({
   };
 
   return (
-    <main className="min-h-screen bg-[#f8f7f4] text-neutral-900">
+    <main className="@container min-h-screen bg-[#f8f7f4] text-neutral-900">
       <EditorialHeader name={photographer.name} bookingUrl={bookingUrl} />
 
       {order.map((sectionKey) => {
